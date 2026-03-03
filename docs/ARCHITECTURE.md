@@ -5,7 +5,7 @@
 - **Язык:** TypeScript (Strict mode).
 - **Пакетный менеджер:** `pnpm`.
 - **Telegram Bot:** `grammY` — мощный и быстрый фреймворк для написания ботов на TS/JS. Поддерживает удобную работу с сессиями и Middleware.
-- **Admin Panel / Web Backend:** `Next.js 15+` (App Router) + React 19.
+- **Admin Panel / Web Backend:** `Next.js 16+` (App Router) + React 19 (Current LTS).
 - **UI Библиотека админки:** TailwindCSS + `shadcn/ui` (или аналоги).
 - **База данных:** PostgreSQL.
 - **ORM:** `Prisma` или `Drizzle ORM` (для строгой типизации запросов из Next.js и Бота).
