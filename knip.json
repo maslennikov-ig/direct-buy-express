@@ -1,0 +1,10 @@
+{
+    "$schema": "https://unpkg.com/knip@5/schema.json",
+    "ignore": [
+        ".agent/**",
+        "components/ui/**",
+        "hooks/use-mobile.ts",
+        "app/output.css",
+        "lib/dadata.ts"
+    ]
+}
