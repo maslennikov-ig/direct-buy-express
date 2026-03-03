@@ -1,7 +1,14 @@
-import { Bot } from "grammy";
+import { Bot, Context, session, type SessionFlavor } from "grammy";
 import { run } from "@grammyjs/runner";
+import { type Conversation, type ConversationFlavor, conversations } from "@grammyjs/conversations";
 
-export const bot = new Bot(process.env.BOT_TOKEN || "mock_token_for_tests");
+export type MyContext = Context & SessionFlavor<any> & ConversationFlavor;
+export type MyConversation = Conversation<MyContext>;
+
+export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_tests");
+
+bot.use(session({ initial: () => ({}) }));
+bot.use(conversations());
 
 bot.command("start", (ctx) => {
     ctx.reply("Добро пожаловать в Direct Buy — первую P2P-платформу скоростного выкупа недвижимости в Москве и МО. 🏎\n\nМы исключили из цепочки посредников и лишние комиссии. Здесь вы соединяетесь с капиталом напрямую.\n\nЧтобы начать, примите условия сервиса:\n• [Политика обработки персональных данных]\n• [Соглашение о конфиденциальности (NDA)]", {

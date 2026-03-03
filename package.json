@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.43.0",
+    "@grammyjs/conversations": "^2.1.1",
     "@grammyjs/runner": "^2.0.3",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.19.2",
