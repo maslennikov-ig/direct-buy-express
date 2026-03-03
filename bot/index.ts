@@ -2,7 +2,7 @@ import { Bot, Context, session, type SessionFlavor } from "grammy";
 import { run } from "@grammyjs/runner";
 import { type Conversation, type ConversationFlavor, conversations } from "@grammyjs/conversations";
 
-export type MyContext = Context & SessionFlavor<any> & ConversationFlavor;
+export type MyContext = Context & SessionFlavor<any> & ConversationFlavor<Context>;
 export type MyConversation = Conversation<MyContext>;
 
 export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_tests");
