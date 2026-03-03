@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  BROKER
+  INVESTOR
+  MANAGER
+}
+
+enum LotStatus {
+  DRAFT
+  AUCTION
+  WAITING_CHOICE
+  WAITING_DEPOSIT
+  WAITING_DOCS
+  DOCS_AUDIT
+  READY_TO_DEAL
+  CANCELED
+  SOLD
+}
+
+model User {
+  id         String   @id @default(cuid())
+  telegramId BigInt   @unique
+  role       Role
+  fullName   String?
+  phone      String?
+  createdAt  DateTime @default(now())
+  
+  lots       Lot[]    @relation("OwnerLots")
+  bids       Bid[]
+}
+
+model Lot {
+  id             String    @id @default(cuid())
+  ownerId        String
+  owner          User      @relation("OwnerLots", fields: [ownerId], references: [id])
+  address        String
+  area           Float
+  floor          Int
+  rooms          Int
+  hasDebts       Boolean   @default(false)
+  hasMortgage    Boolean   @default(false)
+  hasRegistered  Boolean   @default(false)
+  expectedPrice  Decimal
+  urgencyReason  String?
+  status         LotStatus @default(DRAFT)
+  auctionEndsAt  DateTime?
+  createdAt      DateTime  @default(now())
+
+  bids           Bid[]
+  media          Media[]
+}
+
+model Bid {
+  id        String   @id @default(cuid())
+  lotId     String
+  lot       Lot      @relation(fields: [lotId], references: [id])
+  investorId String
+  investor  User     @relation(fields: [investorId], references: [id])
+  amount    Decimal
+  createdAt DateTime @default(now())
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  lotId     String
+  lot       Lot      @relation(fields: [lotId], references: [id])
+  type      String   // PHOTO, PASSPORT, EGRN
+  url       String   // Local path or URL
+  createdAt DateTime @default(now())
+}
