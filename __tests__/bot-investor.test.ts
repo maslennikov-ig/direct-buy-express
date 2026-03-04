@@ -68,7 +68,10 @@ describe('investorRegistrationConversation', () => {
         let waitIndex = 0;
         const mockConversation = {
             waitForCallbackQuery: vi.fn().mockResolvedValue({ callbackQuery: { data: 'nda_accept' }, answerCallbackQuery: vi.fn() }),
-            wait: vi.fn().mockImplementation(() => Promise.resolve(mockWaitAnswers[waitIndex++])),
+            wait: vi.fn().mockImplementation(() => {
+                const answer = mockWaitAnswers[waitIndex++];
+                return Promise.resolve(answer || { message: { text: '10000000' } });
+            }),
             external: vi.fn().mockImplementation(async (cb: any) => await cb())
         } as any;
 
@@ -98,9 +101,10 @@ describe('investorRegistrationConversation', () => {
         } as any;
 
         const mockWaitAnswers = [
-            { message: { text: 'Invalid' } },        // Min Budget Invalid
+            { message: { text: '100' } },            // Min Budget Invalid (< 100000)
             { message: { text: '10000000' } },       // Min Budget Valid
             { message: { text: 'NotNumber' } },      // Max Budget Invalid
+            { message: { text: '5000000' } },        // Max Budget Invalid (< Min)
             { message: { text: '20000000' } },       // Max Budget Valid
             { message: { text: 'ЦАО' } }             // Districts
         ];
@@ -108,13 +112,18 @@ describe('investorRegistrationConversation', () => {
         let waitIndex = 0;
         const mockConversation = {
             waitForCallbackQuery: vi.fn().mockResolvedValue({ callbackQuery: { data: 'nda_accept' }, answerCallbackQuery: vi.fn() }),
-            wait: vi.fn().mockImplementation(() => Promise.resolve(mockWaitAnswers[waitIndex++])),
+            wait: vi.fn().mockImplementation(() => {
+                const answer = mockWaitAnswers[waitIndex++];
+                return Promise.resolve(answer || { message: { text: '10000000' } });
+            }),
             external: vi.fn().mockImplementation(async (cb: any) => await cb())
         } as any;
 
         await investorRegistrationConversation(mockConversation, mockCtx);
 
-        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Пожалуйста, введите сумму числом'));
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Пожалуйста, введите полную сумму в рублях (минимум 100000)'));
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Максимальный бюджет должен быть больше или равен минимальному'));
+
         const { prisma } = await import('../lib/db');
         expect(prisma.investorProfile.upsert).toHaveBeenCalled();
     });

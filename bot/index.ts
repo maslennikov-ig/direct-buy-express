@@ -5,8 +5,7 @@ import { createLotConversation } from "./conversations/create-lot";
 import { investorRegistrationConversation } from "./conversations/investor-registration";
 import { authMiddleware } from "./middleware/auth";
 
-export type MyContext = Context & SessionFlavor<any> & ConversationFlavor<Context>;
-export type MyConversation = Conversation<MyContext, MyContext>;
+import { MyContext } from "./types";
 
 export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_tests");
 

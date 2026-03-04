@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { MyConversation, MyContext } from '../index';
+import type { MyConversation, MyContext } from '../types';
 import { prisma } from '../../lib/db';
 
 export async function investorRegistrationConversation(
@@ -31,11 +31,11 @@ export async function investorRegistrationConversation(
         const ctxMin = await conversation.wait();
         const text = ctxMin.message?.text || "";
         const parsed = parseInt(text.replace(/\D/g, ""), 10);
-        if (!isNaN(parsed) && parsed > 0) {
+        if (!isNaN(parsed) && parsed >= 100000) {
             minBudget = parsed;
             break;
         }
-        await ctx.reply("Пожалуйста, введите сумму числом.");
+        await ctx.reply("Пожалуйста, введите полную сумму в рублях (минимум 100000), без сокращений вроде 'млн'.");
     }
 
     let maxBudget = 0;
@@ -44,11 +44,16 @@ export async function investorRegistrationConversation(
         const ctxMax = await conversation.wait();
         const text = ctxMax.message?.text || "";
         const parsed = parseInt(text.replace(/\D/g, ""), 10);
-        if (!isNaN(parsed) && parsed > 0) {
-            maxBudget = parsed;
-            break;
+        if (!isNaN(parsed) && parsed >= 100000) {
+            if (parsed >= minBudget) {
+                maxBudget = parsed;
+                break;
+            } else {
+                await ctx.reply(`Максимальный бюджет должен быть больше или равен минимальному (${minBudget}).`);
+                continue;
+            }
         }
-        await ctx.reply("Пожалуйста, введите сумму числом.");
+        await ctx.reply("Пожалуйста, введите полную сумму в рублях (минимум 100000), без сокращений вроде 'млн'.");
     }
 
     await ctx.reply("Укажите интересующие районы (через запятую):");

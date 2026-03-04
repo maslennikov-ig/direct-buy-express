@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { MyConversation, MyContext } from '../index';
+import type { MyConversation, MyContext } from '../types';
 import { suggestAddress } from '../../lib/dadata';
 import { prisma } from '../../lib/db';
 
