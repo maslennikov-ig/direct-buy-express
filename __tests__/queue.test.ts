@@ -63,7 +63,8 @@ describe('Background Jobs', () => {
                 status: 'AUCTION',
                 owner: {
                     telegramId: BigInt(123456)
-                }
+                },
+                bids: []
             });
 
             const mockJob = {
@@ -75,7 +76,12 @@ describe('Background Jobs', () => {
 
             expect(prisma.lot.findUnique).toHaveBeenCalledWith({
                 where: { id: 'lot-123' },
-                include: { owner: true }
+                include: {
+                    owner: true,
+                    bids: {
+                        include: { investor: true }
+                    }
+                }
             });
             expect(prisma.$transaction).toHaveBeenCalled();
             expect(bot.api.sendMessage).toHaveBeenCalledWith(
@@ -111,7 +117,8 @@ describe('Background Jobs', () => {
             (prisma.lot.findUnique as any).mockResolvedValue({
                 id: 'lot-123',
                 status: 'AUCTION',
-                owner: { telegramId: BigInt(123456) }
+                owner: { telegramId: BigInt(123456) },
+                bids: []
             });
 
             (bot.api.sendMessage as any).mockRejectedValueOnce(new Error('Telegram API down'));

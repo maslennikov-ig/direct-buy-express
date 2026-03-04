@@ -14,7 +14,12 @@ export const processJob = async (job: Job) => {
 
             const lot = await prisma.lot.findUnique({
                 where: { id: job.data.lotId },
-                include: { owner: true }
+                include: {
+                    owner: true,
+                    bids: {
+                        include: { investor: true }
+                    }
+                }
             });
 
             if (lot && lot.status === 'AUCTION') {
@@ -25,14 +30,37 @@ export const processJob = async (job: Job) => {
                     });
                 });
 
+                // Notify Owner
                 if (lot.owner && lot.owner.telegramId) {
                     try {
-                        await bot.api.sendMessage(
-                            Number(lot.owner.telegramId),
-                            `🔔 Аукцион по вашему лоту (ID: ${lot.id}) завершен!\n\nСтатус изменен на ОЖИДАНИЕ ВЫБОРА.`
-                        );
+                        let text = `🔔 Аукцион по вашему лоту (ID: ${lot.id}) завершен!\n\nСтатус изменен на ОЖИДАНИЕ ВЫБОРА.\n\n`;
+
+                        if (lot.bids.length > 0) {
+                            text += `Поступили предложения:\n`;
+                            lot.bids.forEach((b, i) => {
+                                text += `${i + 1}. ${b.amount.toNumber().toLocaleString("ru-RU")} руб.\n`;
+                            });
+                        } else {
+                            text += `К сожалению, предложений не поступило.`;
+                        }
+
+                        await bot.api.sendMessage(Number(lot.owner.telegramId), text);
                     } catch (err) {
                         console.error(`Failed to send Telegram message to owner of lot ${lot.id}:`, err);
+                    }
+                }
+
+                // Notify Investors
+                for (const bid of lot.bids) {
+                    if (bid.investor && bid.investor.telegramId) {
+                        try {
+                            await bot.api.sendMessage(
+                                Number(bid.investor.telegramId),
+                                `🔔 Сбор предложений завершен по лоту, на который вы делали ставку. Собственник делает выбор.`
+                            );
+                        } catch (e) {
+                            console.error(`Failed to notify investor ${bid.investor.telegramId}`, e);
+                        }
                     }
                 }
             } else {

@@ -98,8 +98,23 @@ export async function makeBidConversation(conversation: MyConversation, ctx: MyC
             });
 
             if (bidCount >= 5) {
-                // To be implemented in Task 3. We will remove the bullMQ job if it exists and manually trigger CLOSE_AUCTION.
+                // Task 3: Trigger manual closure
                 console.log(`[AUCTION] Lot ${lotId} has reached 5 bids. Manual closure logic triggered.`);
+
+                try {
+                    // Try to import dynamicaly or assume globally available if in same monorepo setup
+                    // Since it's standard BullMQ, let's just trigger the worker logic
+                    const { processJob } = await import("../../lib/queue/worker");
+                    const { slaQueue } = await import("../../lib/queue/client");
+
+                    // Cancel the delayed job to prevent double firing
+                    await slaQueue.remove(`close-auction-${lotId}`);
+
+                    // Fire immediately
+                    await processJob({ name: 'CLOSE_AUCTION', data: { lotId: lotId } } as any);
+                } catch (err) {
+                    console.error("Failed to execute manual closure on 5th bid:", err);
+                }
             }
         });
 
