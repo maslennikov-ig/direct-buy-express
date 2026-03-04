@@ -2,6 +2,7 @@ import { Bot, Context, session, type SessionFlavor } from "grammy";
 import { run } from "@grammyjs/runner";
 import { type Conversation, type ConversationFlavor, conversations, createConversation } from "@grammyjs/conversations";
 import { createLotConversation } from "./conversations/create-lot";
+import { investorRegistrationConversation } from "./conversations/investor-registration";
 import { authMiddleware } from "./middleware/auth";
 
 export type MyContext = Context & SessionFlavor<any> & ConversationFlavor<Context>;
@@ -13,6 +14,7 @@ bot.use(session({ initial: () => ({}) }));
 bot.use(authMiddleware);
 bot.use(conversations());
 bot.use(createConversation(createLotConversation));
+bot.use(createConversation(investorRegistrationConversation));
 
 bot.command("start", (ctx) => {
     ctx.reply("Добро пожаловать в Direct Buy — первую P2P-платформу скоростного выкупа недвижимости в Москве и МО. 🏎\n\nМы исключили из цепочки посредников и лишние комиссии. Здесь вы соединяетесь с капиталом напрямую.\n\nЧтобы начать, примите условия сервиса:\n• [Политика обработки персональных данных]\n• [Соглашение о конфиденциальности (NDA)]", {
@@ -40,7 +42,8 @@ bot.on("callback_query:data", async (ctx) => {
         await ctx.answerCallbackQuery();
         await ctx.conversation.enter("createLotConversation");
     } else if (ctx.callbackQuery.data === "role_investor") {
-        await ctx.answerCallbackQuery("Интерфейс инвестора в разработке.");
+        await ctx.answerCallbackQuery();
+        await ctx.conversation.enter("investorRegistrationConversation");
     }
 });
 

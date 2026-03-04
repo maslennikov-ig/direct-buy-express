@@ -134,7 +134,8 @@ describe('Telegram Bot Foundation', () => {
         expect(sendMessageParams).toBeUndefined();
     });
 
-    it('should handle role_investor callback_query', async () => {
+    it('should handle role_investor callback_query and enter conversation', async () => {
+        methodCalls = [];
         await bot.handleUpdate({
             update_id: 5,
             callback_query: {
@@ -148,6 +149,8 @@ describe('Telegram Bot Foundation', () => {
 
         const answerQuery = methodCalls.find((c: any) => c.method === 'answerCallbackQuery');
         expect(answerQuery).toBeDefined();
-        expect(answerQuery?.payload.text).toBe('Интерфейс инвестора в разработке.');
+
+        const sendMessageParams = methodCalls.find((c: any) => c.method === 'sendMessage');
+        expect(sendMessageParams).toBeUndefined();
     });
 });
