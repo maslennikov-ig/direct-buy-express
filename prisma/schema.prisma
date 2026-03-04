@@ -68,6 +68,8 @@ model Bid {
   investor  User     @relation(fields: [investorId], references: [id])
   amount    Decimal
   createdAt DateTime @default(now())
+
+  @@unique([lotId, investorId])
 }
 
 model Media {
