@@ -124,4 +124,90 @@ describe('createLotConversation', () => {
         const { prisma } = await import('../lib/db');
         expect(prisma.lot.create).toHaveBeenCalled();
     });
+
+    it('should return early if address text is missing', async () => {
+        const mockCtx = {
+            from: { id: 12345, first_name: 'Owner Name' },
+            reply: vi.fn(),
+        } as any;
+
+        const mockConversation = {
+            wait: vi.fn().mockResolvedValue({ message: { photo: [] } }),
+            external: vi.fn()
+        } as any;
+
+        await createLotConversation(mockConversation, mockCtx);
+
+        expect(mockCtx.reply).toHaveBeenCalledTimes(2);
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Операция прервана'));
+    });
+
+    it('should fallback to manual address if DaData returns no suggestions', async () => {
+        const mockCtx = {
+            from: { id: 12345, first_name: 'Owner Name' },
+            reply: vi.fn(),
+        } as any;
+
+        const mockAnswers = [
+            { message: { text: 'Тверская 1' } }, // Address
+            { message: { text: '45.5' } },       // Area
+            { message: { text: '5' } },          // Floor
+            { message: { text: '2' } },          // Rooms
+            { message: { text: 'Нет' } },        // Debts
+            { message: { text: 'Да' } },         // Mortgage
+            { message: { text: 'Нет' } },        // Registered
+            { message: { text: '15000000' } },   // Price
+            { message: { text: 'Срочный переезд' } } // Urgency
+        ];
+
+        let waitIndex = 0;
+        const mockConversation = {
+            wait: vi.fn().mockImplementation(() => Promise.resolve(mockAnswers[waitIndex++])),
+            external: vi.fn().mockImplementation(async (cb) => {
+                // If it's suggestAddress, return empty array immediately
+                if (cb.toString().includes('suggestAddress')) {
+                    return [];
+                }
+                return await cb();
+            })
+        } as any;
+
+        await createLotConversation(mockConversation, mockCtx);
+
+        // Verify it skipped the DaData confirmation and asked for area directly
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Продолжаем. Введите общую площадь'));
+    });
+
+    it('should handle DB exception during save', async () => {
+        const mockCtx = {
+            from: { id: 12345, first_name: 'Owner Name' },
+            reply: vi.fn(),
+        } as any;
+
+        const mockAnswers = [
+            { message: { text: 'Тверская 1' } }, // Address
+            { message: { text: '45.5' } },       // Area
+            { message: { text: '5' } },          // Floor
+            { message: { text: '2' } },          // Rooms
+            { message: { text: 'Нет' } },        // Debts
+            { message: { text: 'Да' } },         // Mortgage
+            { message: { text: 'Нет' } },        // Registered
+            { message: { text: '15000000' } },   // Price
+            { message: { text: 'Срочный переезд' } } // Urgency
+        ];
+
+        let waitIndex = 0;
+        const mockConversation = {
+            wait: vi.fn().mockImplementation(() => Promise.resolve(mockAnswers[waitIndex++])),
+            external: vi.fn().mockImplementation(async (cb) => await cb())
+        } as any;
+
+        const { prisma } = await import('../lib/db');
+        (prisma.lot.create as any).mockRejectedValueOnce(new Error('DB Error'));
+
+        await createLotConversation(mockConversation, mockCtx);
+
+        expect(console.error).toHaveBeenCalled();
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Произошла ошибка при сохранении'));
+    });
 });

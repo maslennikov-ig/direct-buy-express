@@ -58,4 +58,14 @@ describe('DaData Integration Utility', () => {
         const suggestions = await suggestAddress('Forbidden');
         expect(suggestions).toEqual([]);
     });
+
+    it('should return empty array and warn if API key is missing', async () => {
+        delete process.env.DADATA_API_KEY;
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+
+        const suggestions = await suggestAddress('Test');
+        expect(suggestions).toEqual([]);
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('DADATA_API_KEY is not defined'));
+        consoleSpy.mockRestore();
+    });
 });

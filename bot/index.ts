@@ -2,6 +2,7 @@ import { Bot, Context, session, type SessionFlavor } from "grammy";
 import { run } from "@grammyjs/runner";
 import { type Conversation, type ConversationFlavor, conversations, createConversation } from "@grammyjs/conversations";
 import { createLotConversation } from "./conversations/create-lot";
+import { authMiddleware } from "./middleware/auth";
 
 export type MyContext = Context & SessionFlavor<any> & ConversationFlavor<Context>;
 export type MyConversation = Conversation<MyContext, MyContext>;
@@ -9,6 +10,7 @@ export type MyConversation = Conversation<MyContext, MyContext>;
 export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_tests");
 
 bot.use(session({ initial: () => ({}) }));
+bot.use(authMiddleware);
 bot.use(conversations());
 bot.use(createConversation(createLotConversation));
 

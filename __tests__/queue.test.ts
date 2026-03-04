@@ -104,6 +104,31 @@ describe('Background Jobs', () => {
             expect(bot.api.sendMessage).not.toHaveBeenCalled();
         });
 
+        it('should log error if telegram notification fails', async () => {
+            const { prisma } = await import('../lib/db');
+            const { bot } = await import('../bot/index');
+
+            (prisma.lot.findUnique as any).mockResolvedValue({
+                id: 'lot-123',
+                status: 'AUCTION',
+                owner: { telegramId: BigInt(123456) }
+            });
+
+            (bot.api.sendMessage as any).mockRejectedValueOnce(new Error('Telegram API down'));
+
+            const mockJob = {
+                name: 'CLOSE_AUCTION',
+                data: { lotId: 'lot-123' }
+            } as Job;
+
+            await processJob(mockJob);
+
+            expect(console.error).toHaveBeenCalledWith(
+                expect.stringContaining('Failed to send Telegram message to owner of lot lot-123'),
+                expect.any(Error)
+            );
+        });
+
         it('should log warning for unknown job', async () => {
             const mockJob = {
                 name: 'UNKNOWN_TASK',
