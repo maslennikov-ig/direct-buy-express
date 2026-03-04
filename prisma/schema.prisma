@@ -34,8 +34,9 @@ model User {
   phone      String?
   createdAt  DateTime @default(now())
   
-  lots       Lot[]    @relation("OwnerLots")
-  bids       Bid[]
+  lots            Lot[]             @relation("OwnerLots")
+  bids            Bid[]
+  investorProfile InvestorProfile?
 }
 
 model Lot {
@@ -76,4 +77,16 @@ model Media {
   type      String   // PHOTO, PASSPORT, EGRN
   url       String   // Local path or URL
   createdAt DateTime @default(now())
+}
+
+model InvestorProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  minBudget  Decimal?
+  maxBudget  Decimal?
+  districts  String[]
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
