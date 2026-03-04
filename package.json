@@ -10,6 +10,7 @@
     "clean": "next clean"
   },
   "dependencies": {
+    "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/conversations": "^2.1.1",
     "@grammyjs/runner": "^2.0.3",
     "@prisma/client": "^6.19.2",

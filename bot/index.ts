@@ -4,10 +4,12 @@ import { type Conversation, type ConversationFlavor, conversations, createConver
 import { createLotConversation } from "./conversations/create-lot";
 import { investorRegistrationConversation } from "./conversations/investor-registration";
 import { authMiddleware } from "./middleware/auth";
-
+import { autoRetry } from "@grammyjs/auto-retry";
 import { MyContext } from "./types";
 
 export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_tests");
+
+bot.api.config.use(autoRetry());
 
 bot.use(session({ initial: () => ({}) }));
 bot.use(authMiddleware);

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@grammyjs/auto-retry':
+        specifier: ^2.0.2
+        version: 2.0.2(grammy@1.41.1)
       '@grammyjs/conversations':
         specifier: ^2.1.1
         version: 2.1.1(grammy@1.41.1)
@@ -404,6 +407,12 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@grammyjs/auto-retry@2.0.2':
+    resolution: {integrity: sha512-b4A4p5jlYDiQtW0c0FXYe11WMkYoiW+5rvOaDMCOk1h7Pu2SDl7B7gmFF8cthWCx2+M2nWLOsBxAgbBG4kKWYg==}
+    engines: {node: '>=12.20.0 || >=14.13.1'}
+    peerDependencies:
+      grammy: ^1.10.0
 
   '@grammyjs/conversations@2.1.1':
     resolution: {integrity: sha512-hoxqwSkaXDeU7mzXulpk3A4Cmd6UZO3HU4aPoITX5ekSHK7ZcUEmMl7RhKKkqw3z6zVbbAShQreJoVV5/dDSLA==}
@@ -4000,6 +4009,13 @@ snapshots:
       react-dom: 19.2.4(react@19.2.4)
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@grammyjs/auto-retry@2.0.2(grammy@1.41.1)':
+    dependencies:
+      debug: 4.4.3
+      grammy: 1.41.1
+    transitivePeerDependencies:
+      - supports-color
 
   '@grammyjs/conversations@2.1.1(grammy@1.41.1)':
     dependencies:
