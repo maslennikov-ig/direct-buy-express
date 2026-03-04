@@ -79,6 +79,7 @@ describe('Background Jobs', () => {
                 include: {
                     owner: true,
                     bids: {
+                        orderBy: { amount: 'desc' },
                         include: { investor: true }
                     }
                 }

@@ -17,6 +17,7 @@ export const processJob = async (job: Job) => {
                 include: {
                     owner: true,
                     bids: {
+                        orderBy: { amount: 'desc' },
                         include: { investor: true }
                     }
                 }

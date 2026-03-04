@@ -104,14 +104,13 @@ export async function makeBidConversation(conversation: MyConversation, ctx: MyC
                 try {
                     // Try to import dynamicaly or assume globally available if in same monorepo setup
                     // Since it's standard BullMQ, let's just trigger the worker logic
-                    const { processJob } = await import("../../lib/queue/worker");
                     const { slaQueue } = await import("../../lib/queue/client");
 
                     // Cancel the delayed job to prevent double firing
                     await slaQueue.remove(`close-auction-${lotId}`);
 
                     // Fire immediately
-                    await processJob({ name: 'CLOSE_AUCTION', data: { lotId: lotId } } as any);
+                    await slaQueue.add('CLOSE_AUCTION', { lotId: lotId }, { removeOnComplete: true });
                 } catch (err) {
                     console.error("Failed to execute manual closure on 5th bid:", err);
                 }
