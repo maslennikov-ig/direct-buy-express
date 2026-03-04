@@ -30,18 +30,42 @@ export async function createLotConversation(
     }
 
     // AREA
-    const areaMsg = await conversation.wait();
-    const area = parseFloat(areaMsg.message?.text?.replace(',', '.') || "0");
+    let area = 0;
+    while (true) {
+        const areaMsg = await conversation.wait();
+        const parsed = parseFloat(areaMsg.message?.text?.replace(',', '.') || "0");
+        if (!isNaN(parsed) && parsed > 0) {
+            area = parsed;
+            break;
+        }
+        await ctx.reply("Пожалуйста, введите корректное число для площади (например, 45.5):");
+    }
 
     // FLOOR
     await ctx.reply("Укажите этаж:");
-    const floorMsg = await conversation.wait();
-    const floor = parseInt(floorMsg.message?.text || "0", 10);
+    let floor = 0;
+    while (true) {
+        const floorMsg = await conversation.wait();
+        const parsed = parseInt(floorMsg.message?.text || "", 10);
+        if (!isNaN(parsed)) {
+            floor = parsed;
+            break;
+        }
+        await ctx.reply("Пожалуйста, введите корректный номер этажа (только число):");
+    }
 
     // ROOMS
     await ctx.reply("Количество комнат (если студия, введите 0):");
-    const roomsMsg = await conversation.wait();
-    const rooms = parseInt(roomsMsg.message?.text || "0", 10);
+    let rooms = 0;
+    while (true) {
+        const roomsMsg = await conversation.wait();
+        const parsed = parseInt(roomsMsg.message?.text || "", 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+            rooms = parsed;
+            break;
+        }
+        await ctx.reply("Пожалуйста, введите корректное количество комнат (только число, 0 для студии):");
+    }
 
     // LEGAL - DEBTS
     await ctx.reply("Есть ли долги по ЖКУ или капремонту? (Да/Нет)");
@@ -60,9 +84,16 @@ export async function createLotConversation(
 
     // FINANCIAL - PRICE
     await ctx.reply("Какую сумму (на руки) вы ожидаете получить? (в рублях)");
-    const priceMsg = await conversation.wait();
-    const expectedPriceStr = priceMsg.message?.text?.replace(/\D/g, '') || "0";
-    const expectedPrice = new Prisma.Decimal(expectedPriceStr);
+    let expectedPrice;
+    while (true) {
+        const priceMsg = await conversation.wait();
+        const expectedPriceStr = priceMsg.message?.text?.replace(/\D/g, '') || "";
+        if (expectedPriceStr.length > 0) {
+            expectedPrice = new Prisma.Decimal(expectedPriceStr);
+            break;
+        }
+        await ctx.reply("Пожалуйста, введите сумму числом (например, 15000000):");
+    }
 
     // CONTEXT - URGENCY
     await ctx.reply("Почему необходимо продать срочно? (Например: Встречная сделка, долги, переезд)");

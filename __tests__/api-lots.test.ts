@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '../app/api/lots/route';
+import { NextRequest } from 'next/server';
 
 // Mock Next.js NextResponse
 vi.mock('next/server', () => {
@@ -25,7 +26,7 @@ describe('Lots API', () => {
     });
 
     it('should return 401 if missing authorization header', async () => {
-        const req = new Request('http://localhost/api/lots') as any;
+        const req = new Request('http://localhost/api/lots') as unknown as NextRequest;
         const response = await GET(req);
         expect(response).toEqual({ data: { error: 'Unauthorized' }, options: { status: 401 } });
     });
@@ -33,7 +34,7 @@ describe('Lots API', () => {
     it('should return 401 if invalid authorization header', async () => {
         const req = new Request('http://localhost/api/lots', {
             headers: { 'Authorization': 'Bearer wrong-key' }
-        }) as any;
+        }) as unknown as NextRequest;
         const response = await GET(req);
         expect(response).toEqual({ data: { error: 'Unauthorized' }, options: { status: 401 } });
     });
@@ -44,7 +45,7 @@ describe('Lots API', () => {
 
         const req = new Request('http://localhost/api/lots', {
             headers: { 'Authorization': 'Bearer test-secret-key' }
-        });
+        }) as unknown as NextRequest;
         const response = await GET(req);
 
         expect(prisma.lot.findMany).toHaveBeenCalled();
@@ -57,7 +58,7 @@ describe('Lots API', () => {
 
         const req = new Request('http://localhost/api/lots', {
             headers: { 'Authorization': 'Bearer test-secret-key' }
-        });
+        }) as unknown as NextRequest;
         const response = await GET(req);
 
         expect(response).toEqual({ data: { error: 'Failed to fetch lots' }, options: { status: 500 } });

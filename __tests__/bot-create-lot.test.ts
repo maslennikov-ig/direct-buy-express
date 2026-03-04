@@ -84,4 +84,44 @@ describe('createLotConversation', () => {
             })
         );
     });
+
+    it('should prompt again on invalid area, floor, rooms and price', async () => {
+        const mockCtx = {
+            from: { id: 12345, first_name: 'Owner Name' },
+            reply: vi.fn(),
+        } as any;
+
+        // Simulate user answering with invalid answers first, then valid
+        const mockAnswers = [
+            { message: { text: 'Тверская 1' } }, // Address
+            { message: { text: 'Invalid' } },    // Invalid Area
+            { message: { text: '45.5' } },       // Valid Area
+            { message: { text: 'NotAFloor' } },  // Invalid Floor
+            { message: { text: '5' } },          // Valid Floor
+            { message: { text: 'Five' } },       // Invalid Rooms
+            { message: { text: '2' } },          // Valid Rooms
+            { message: { text: 'Нет' } },        // Debts
+            { message: { text: 'Да' } },         // Mortgage
+            { message: { text: 'Нет' } },        // Registered
+            { message: { text: 'LotsOfMoney' } },// Invalid Price
+            { message: { text: '15000000' } },   // Valid Price
+            { message: { text: 'Срочный переезд' } } // Urgency
+        ];
+
+        let waitIndex = 0;
+        const mockConversation = {
+            wait: vi.fn().mockImplementation(() => Promise.resolve(mockAnswers[waitIndex++])),
+            external: vi.fn().mockImplementation(async (cb) => await cb())
+        } as any;
+
+        await createLotConversation(mockConversation, mockCtx);
+
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Пожалуйста, введите корректное число для площади'));
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Пожалуйста, введите корректный номер этажа'));
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Пожалуйста, введите корректное количество комнат'));
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Пожалуйста, введите сумму числом'));
+
+        const { prisma } = await import('../lib/db');
+        expect(prisma.lot.create).toHaveBeenCalled();
+    });
 });
