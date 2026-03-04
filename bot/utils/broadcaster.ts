@@ -28,24 +28,38 @@ export async function broadcastLotToInvestors(lotId: string) {
         `💰 Предварительная цена: ${lot.expectedPrice} руб.\n\n` +
         `Нажмите на кнопку ниже, чтобы сделать ставку.`;
 
-    for (const investor of matchingInvestors) {
-        if (!investor.user.telegramId) continue;
+    function chunkArray<T>(arr: T[], size: number): T[][] {
+        return arr.length ? [arr.slice(0, size), ...chunkArray(arr.slice(size), size)] : [];
+    }
 
-        try {
-            await bot.api.sendMessage(
-                Number(investor.user.telegramId),
-                messageText,
-                {
-                    parse_mode: "HTML",
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: "💰 Предложить цену", callback_data: `bid_lot_${lot.id}` }]
-                        ]
+    const BATCH_SIZE = 30;
+    const batches = chunkArray(matchingInvestors, BATCH_SIZE);
+
+    for (const batch of batches) {
+        const promises = batch.map(async (investor) => {
+            if (!investor.user.telegramId) return;
+
+            try {
+                await bot.api.sendMessage(
+                    Number(investor.user.telegramId),
+                    messageText,
+                    {
+                        parse_mode: "HTML",
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "💰 Предложить цену", callback_data: `bid_lot_${lot.id}` }]
+                            ]
+                        }
                     }
-                }
-            );
-        } catch (error) {
-            console.error(`Failed to send lot ${lot.id} to investor ${investor.user.telegramId}`, error);
-        }
+                );
+            } catch (error) {
+                console.error(`Failed to send lot ${lot.id} to investor ${investor.user.telegramId}`, error);
+            }
+        });
+
+        await Promise.allSettled(promises);
+
+        // Minor delay to prevent aggressive bursts, optional but safe for large distributions
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
 }

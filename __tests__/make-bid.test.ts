@@ -13,6 +13,7 @@ vi.mock('../lib/db', () => ({
             findFirst: vi.fn(),
             create: vi.fn(),
             update: vi.fn(),
+            upsert: vi.fn(),
         },
         user: {
             findUnique: vi.fn(),
@@ -67,14 +68,13 @@ describe('makeBidConversation', () => {
 
         // Mock less than 5 bids
         (prisma.bid.count as any).mockResolvedValue(1);
-        (prisma.bid.findFirst as any).mockResolvedValue(null);
-        (prisma.bid.create as any).mockResolvedValue({});
+        (prisma.bid.upsert as any).mockResolvedValue({});
 
         await makeBidConversation(mockConversation, mockCtx);
 
-        expect(prisma.bid.create).toHaveBeenCalledWith(
+        expect(prisma.bid.upsert).toHaveBeenCalledWith(
             expect.objectContaining({
-                data: expect.objectContaining({ amount: new Prisma.Decimal("16500000") })
+                create: expect.objectContaining({ amount: new Prisma.Decimal("16500000") })
             })
         );
         expect(mockCtx.reply).toHaveBeenCalledWith(

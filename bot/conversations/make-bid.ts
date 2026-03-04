@@ -68,29 +68,23 @@ export async function makeBidConversation(conversation: MyConversation, ctx: MyC
                 throw new Error("Investor profile not found or not verified");
             }
 
-            // Using pure create/update logic. Bid doesn't have a compound unique constraint in schema.
-            // Let's find first, then create or update
-            const existingBid = await prisma.bid.findFirst({
+            // Using atomic upsert to prevent Race Conditions (since we added @@unique([lotId, investorId]))
+            await prisma.bid.upsert({
                 where: {
+                    lotId_investorId: {
+                        lotId: lotId,
+                        investorId: user.id
+                    }
+                },
+                update: {
+                    amount: amountAsDecimal
+                },
+                create: {
                     lotId: lotId,
-                    investorId: user.id
+                    investorId: user.id,
+                    amount: amountAsDecimal
                 }
             });
-
-            if (existingBid) {
-                await prisma.bid.update({
-                    where: { id: existingBid.id },
-                    data: { amount: amountAsDecimal }
-                });
-            } else {
-                await prisma.bid.create({
-                    data: {
-                        lotId: lotId,
-                        investorId: user.id,
-                        amount: amountAsDecimal
-                    }
-                });
-            }
 
             // Count total bids
             const bidCount = await prisma.bid.count({
