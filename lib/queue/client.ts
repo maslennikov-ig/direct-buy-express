@@ -5,7 +5,7 @@ const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379'
     maxRetriesPerRequest: null,
 });
 
-export const slaQueue = new Queue('sla-timers', { connection });
+export const slaQueue = new Queue('sla-timers', { connection: connection as any });
 
 export const QueueJobs = {
     CLOSE_AUCTION: 'CLOSE_AUCTION',
