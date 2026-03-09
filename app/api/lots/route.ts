@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
 
     try {
         const lots = await prisma.lot.findMany({
+            take: 100,
             include: { owner: true, bids: true },
             orderBy: { createdAt: 'desc' },
         });

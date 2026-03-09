@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-directbuy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-directbuy}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-directbuy}" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  admin-panel:
+    build: .
+    restart: unless-stopped
+    command: [ "pnpm", "start" ]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-directbuy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-directbuy}
+      REDIS_URL: redis://redis:6379
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      ADMIN_SESSION_TOKEN: ${ADMIN_SESSION_TOKEN:?Set ADMIN_SESSION_TOKEN}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  bot:
+    build: .
+    restart: unless-stopped
+    command: [ "node", "-e", "require('./bot/index.js')" ]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-directbuy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-directbuy}
+      REDIS_URL: redis://redis:6379
+      BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
+      MANAGER_CHAT_ID: ${MANAGER_CHAT_ID}
+      PLATFORM_FEE_RUB: ${PLATFORM_FEE_RUB:-100000}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: [ "node", "-e", "require('./lib/queue/worker.js')" ]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-directbuy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-directbuy}
+      REDIS_URL: redis://redis:6379
+      BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
+      MANAGER_CHAT_ID: ${MANAGER_CHAT_ID}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - admin-panel
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:

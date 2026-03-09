@@ -4,6 +4,10 @@ import { type Conversation, type ConversationFlavor, conversations, createConver
 import { createLotConversation } from "./conversations/create-lot";
 import { investorRegistrationConversation } from "./conversations/investor-registration";
 import { makeBidConversation } from "./conversations/make-bid";
+import { uploadDocsConversation } from "./conversations/upload-docs";
+import { handleInvestorDocsDecision } from "./handlers/investor-docs-decision";
+import { handleOwnerChoice } from "./handlers/owner-choice";
+import { handleMeetingResponse, handleScheduleMeeting } from "./handlers/meeting";
 import { authMiddleware } from "./middleware/auth";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { MyContext } from "./types";
@@ -18,6 +22,7 @@ bot.use(conversations());
 bot.use(createConversation(createLotConversation));
 bot.use(createConversation(investorRegistrationConversation));
 bot.use(createConversation(makeBidConversation));
+bot.use(createConversation(uploadDocsConversation));
 
 bot.command("start", (ctx) => {
     ctx.reply("Добро пожаловать в Direct Buy — первую P2P-платформу скоростного выкупа недвижимости в Москве и МО. 🏎\n\nМы исключили из цепочки посредников и лишние комиссии. Здесь вы соединяетесь с капиталом напрямую.\n\nЧтобы начать, примите условия сервиса:\n• [Политика обработки персональных данных]\n• [Соглашение о конфиденциальности (NDA)]", {
@@ -50,6 +55,48 @@ bot.on("callback_query:data", async (ctx) => {
     } else if (ctx.callbackQuery.data.startsWith("bid_lot_")) {
         await ctx.answerCallbackQuery();
         await ctx.conversation.enter("makeBidConversation");
+    } else if (ctx.callbackQuery.data.startsWith("upload_docs_")) {
+        await ctx.answerCallbackQuery();
+        await ctx.conversation.enter("uploadDocsConversation");
+    } else if (ctx.callbackQuery.data.startsWith("investor_docs_approve_")) {
+        await ctx.answerCallbackQuery();
+        const lotId = ctx.callbackQuery.data.replace("investor_docs_approve_", "");
+        // CR-6: Remove buttons and show visual confirmation
+        try { await ctx.editMessageText("✅ Вы одобрили документы. Ожидайте связи от менеджера."); } catch { }
+        await handleInvestorDocsDecision(lotId, "approved", bot.api);
+    } else if (ctx.callbackQuery.data.startsWith("investor_docs_reject_")) {
+        await ctx.answerCallbackQuery();
+        const lotId = ctx.callbackQuery.data.replace("investor_docs_reject_", "");
+        // CR-6: Remove buttons and show visual confirmation
+        try { await ctx.editMessageText("❌ Вы отклонили документы. Менеджер свяжется с вами."); } catch { }
+        await handleInvestorDocsDecision(lotId, "rejected", bot.api);
+    } else if (ctx.callbackQuery.data.startsWith("owner_agree_bid_")) {
+        await ctx.answerCallbackQuery();
+        // Format: owner_agree_bid_<bidId>_lot_<lotId>
+        const parts = ctx.callbackQuery.data.replace("owner_agree_bid_", "").split("_lot_");
+        if (parts.length !== 2 || !parts[0] || !parts[1]) {
+            await ctx.reply("⚠️ Ошибка обработки. Попробуйте снова.");
+            return;
+        }
+        const bidId = parts[0];
+        const lotId = parts[1];
+        try { await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }); } catch { }
+        await handleOwnerChoice(lotId, bidId, "agreed", bot.api);
+    } else if (ctx.callbackQuery.data.startsWith("owner_reject_lot_")) {
+        await ctx.answerCallbackQuery();
+        const lotId = ctx.callbackQuery.data.replace("owner_reject_lot_", "");
+        try { await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }); } catch { }
+        await handleOwnerChoice(lotId, null, "rejected", bot.api);
+    } else if (ctx.callbackQuery.data.startsWith("meeting_confirm_")) {
+        await ctx.answerCallbackQuery();
+        const lotId = ctx.callbackQuery.data.replace("meeting_confirm_", "");
+        try { await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }); } catch { }
+        await handleMeetingResponse(lotId, "confirmed", bot.api);
+    } else if (ctx.callbackQuery.data.startsWith("meeting_reject_")) {
+        await ctx.answerCallbackQuery();
+        const lotId = ctx.callbackQuery.data.replace("meeting_reject_", "");
+        try { await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }); } catch { }
+        await handleMeetingResponse(lotId, "rejected", bot.api);
     }
 });
 

@@ -4,13 +4,16 @@ import { prisma } from '../lib/db';
 import { bot } from '../bot/index';
 import { Prisma } from '@prisma/client';
 
+vi.mock('../bot/handlers/owner-choice', () => ({
+    sendOwnerChoiceOffer: vi.fn(),
+}));
+
 vi.mock('../lib/db', () => ({
     prisma: {
         lot: {
             findUnique: vi.fn(),
-            update: vi.fn(),
+            updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
-        $transaction: vi.fn().mockImplementation((cb) => cb(prisma)),
     },
 }));
 
@@ -32,10 +35,10 @@ describe('Worker SLA Tests: CLOSE_AUCTION', () => {
 
         await processJob({ name: 'CLOSE_AUCTION', data: { lotId: '1' } } as any);
 
-        expect(prisma.lot.update).not.toHaveBeenCalled();
+        expect(prisma.lot.updateMany).not.toHaveBeenCalled();
     });
 
-    it('should close auction, notify owner and investors', async () => {
+    it('should close auction and notify investors', async () => {
         const mockLot = {
             id: '123',
             status: 'AUCTION',
@@ -50,30 +53,47 @@ describe('Worker SLA Tests: CLOSE_AUCTION', () => {
 
         await processJob({ name: 'CLOSE_AUCTION', data: { lotId: '123' } } as any);
 
-        expect(prisma.lot.update).toHaveBeenCalledWith(
-            expect.objectContaining({ data: { status: 'WAITING_CHOICE' } })
+        // Verify idempotent status transition using updateMany
+        expect(prisma.lot.updateMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: '123', status: 'AUCTION' },
+                data: { status: 'WAITING_CHOICE' },
+            })
         );
 
-        // Notify 1 owner and 2 investors = 3 messages total
-        expect(bot.api.sendMessage).toHaveBeenCalledTimes(3);
+        // Only 2 investor notifications (owner notification is now in sendOwnerChoiceOffer, which is mocked)
+        expect(bot.api.sendMessage).toHaveBeenCalledTimes(2);
 
-        // Check owner message
         expect(bot.api.sendMessage).toHaveBeenNthCalledWith(
             1,
-            111,
-            expect.stringContaining('завершен')
-        );
-
-        // Check investor messages
-        expect(bot.api.sendMessage).toHaveBeenNthCalledWith(
-            2,
             222,
             expect.stringContaining('Сбор предложений завершен по лоту')
         );
         expect(bot.api.sendMessage).toHaveBeenNthCalledWith(
-            3,
+            2,
             333,
             expect.stringContaining('Сбор предложений завершен по лоту')
         );
+
+        // Verify sendOwnerChoiceOffer was called
+        const { sendOwnerChoiceOffer } = await import('../bot/handlers/owner-choice');
+        expect(sendOwnerChoiceOffer).toHaveBeenCalledWith('123', bot.api);
+    });
+
+    it('should skip if updateMany returns count 0 (already processed)', async () => {
+        const mockLot = {
+            id: '123',
+            status: 'AUCTION',
+            owner: { telegramId: BigInt(111) },
+            bids: []
+        };
+
+        (prisma.lot.findUnique as any).mockResolvedValue(mockLot);
+        (prisma.lot.updateMany as any).mockResolvedValue({ count: 0 });
+
+        await processJob({ name: 'CLOSE_AUCTION', data: { lotId: '123' } } as any);
+
+        // No notifications should be sent
+        expect(bot.api.sendMessage).not.toHaveBeenCalled();
     });
 });

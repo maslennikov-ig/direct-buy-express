@@ -3,6 +3,9 @@ import type { MyConversation, MyContext } from '../types';
 import { suggestAddress } from '../../lib/dadata';
 import { prisma } from '../../lib/db';
 
+const MIN_PHOTOS = 7;
+const MAX_PHOTOS = 10;
+
 export async function createLotConversation(
     conversation: MyConversation,
     ctx: MyContext
@@ -20,8 +23,6 @@ export async function createLotConversation(
     // Attempt DaData suggestion
     const suggestions = await conversation.external(() => suggestAddress(address));
     if (suggestions && suggestions.length > 0) {
-        // For MVP, we pick the first suggestion to streamline, or you could ask the user to pick via inline keyboard.
-        // Here we'll just show it to them for confirmation.
         const bestMatch = suggestions[0].value;
         await ctx.reply(`Я нашел стандартизированный адрес:\n📍 ${bestMatch}\n\nЕсли он неверный, вы сможете отредактировать его позже.\n\nПродолжаем. Введите общую площадь в кв.м (например, 45.5):`);
         address = bestMatch;
@@ -82,6 +83,57 @@ export async function createLotConversation(
     const regMsg = await conversation.wait();
     const hasRegistered = regMsg.message?.text?.toLowerCase().includes("да") || false;
 
+    // PHOTOS (ТЗ §3 п.3: 7-10 обязательных фото)
+    await ctx.reply(
+        `📸 Время для фото!\n\n` +
+        `Загрузите от ${MIN_PHOTOS} до ${MAX_PHOTOS} фотографий объекта ` +
+        `(кухня, санузел, основные комнаты, вид из окна).\n\n` +
+        `Отправьте фото одним или несколькими сообщениями.\n` +
+        `Загружено: 0/${MIN_PHOTOS} (минимум)`
+    );
+
+    const photoFileIds: string[] = [];
+
+    while (photoFileIds.length < MAX_PHOTOS) {
+        const photoMsg = await conversation.wait();
+
+        // Check for "done" signal
+        if (photoMsg.message?.text?.toLowerCase() === 'готово' || photoMsg.message?.text?.toLowerCase() === 'done') {
+            if (photoFileIds.length >= MIN_PHOTOS) {
+                break;
+            }
+            await ctx.reply(`❗ Необходимо загрузить минимум ${MIN_PHOTOS} фото. Сейчас: ${photoFileIds.length}. Продолжайте загрузку.`);
+            continue;
+        }
+
+        // Accept photos
+        if (photoMsg.message?.photo && photoMsg.message.photo.length > 0) {
+            // Telegram sends multiple sizes, take the largest
+            const largestPhoto = photoMsg.message.photo[photoMsg.message.photo.length - 1];
+            photoFileIds.push(largestPhoto.file_id);
+        } else if (photoMsg.message?.document?.mime_type?.startsWith('image/')) {
+            photoFileIds.push(photoMsg.message.document.file_id);
+        } else {
+            await ctx.reply("Пожалуйста, отправьте фотографию объекта.");
+            continue;
+        }
+
+        if (photoFileIds.length >= MAX_PHOTOS) {
+            await ctx.reply(`✅ Загружено ${photoFileIds.length} фото (максимум). Переходим дальше.`);
+            break;
+        } else if (photoFileIds.length >= MIN_PHOTOS) {
+            await ctx.reply(
+                `✅ Загружено ${photoFileIds.length}/${MAX_PHOTOS} фото.\n` +
+                `Вы можете отправить ещё (до ${MAX_PHOTOS - photoFileIds.length}) или напишите «Готово» для продолжения.`
+            );
+        } else {
+            const remaining = MIN_PHOTOS - photoFileIds.length;
+            await ctx.reply(
+                `📷 Загружено ${photoFileIds.length}/${MIN_PHOTOS} (минимум). Ещё ${remaining}.`
+            );
+        }
+    }
+
     // FINANCIAL - PRICE
     await ctx.reply("Какую сумму (на руки) вы ожидаете получить? (в рублях)");
     let expectedPrice;
@@ -116,7 +168,7 @@ export async function createLotConversation(
                 }
             });
 
-            await prisma.lot.create({
+            const lot = await prisma.lot.create({
                 data: {
                     ownerId: user.id,
                     address,
@@ -131,11 +183,23 @@ export async function createLotConversation(
                     status: 'DRAFT'
                 }
             });
+
+            // Save photo Media records
+            if (photoFileIds.length > 0) {
+                await prisma.media.createMany({
+                    data: photoFileIds.map((fileId) => ({
+                        lotId: lot.id,
+                        type: 'PHOTO',
+                        url: fileId, // Store Telegram file_id; download on demand
+                    })),
+                });
+            }
         });
 
-        await ctx.reply("✅ Лот успешно сохранен как ЧЕРНОВИК.\n\nМенеджер скоро свяжется с вами для верификации документов, после чего мы запустим слепой аукцион среди инвесторов.");
+        await ctx.reply(`✅ Лот успешно сохранен как ЧЕРНОВИК (${photoFileIds.length} фото).\n\nМенеджер скоро свяжется с вами для верификации документов, после чего мы запустим слепой аукцион среди инвесторов.`);
     } catch (e) {
         console.error("Lot creation error:", e);
         await ctx.reply("❌ Произошла ошибка при сохранении. Попробуйте снова позже.");
     }
 }
+

@@ -104,7 +104,10 @@ export async function makeBidConversation(conversation: MyConversation, ctx: MyC
                     await slaQueue.remove(`close-auction-${lotId}`);
 
                     // Fire immediately
-                    await slaQueue.add('CLOSE_AUCTION', { lotId: lotId }, { removeOnComplete: true });
+                    await slaQueue.add('CLOSE_AUCTION', { lotId: lotId }, {
+                        removeOnComplete: true,
+                        jobId: `close-auction-${lotId}`
+                    });
                 } catch (err) {
                     console.error("Failed to execute manual closure on 5th bid:", err);
                 }

@@ -8,13 +8,8 @@ vi.mock('../lib/db', () => ({
     prisma: {
         lot: {
             findUnique: vi.fn(),
-            update: vi.fn()
+            updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
-        $transaction: vi.fn(async (cb) => cb({
-            lot: {
-                update: vi.fn().mockResolvedValue({})
-            }
-        }))
     }
 }));
 
@@ -27,6 +22,11 @@ vi.mock('../bot/index', () => ({
     }
 }));
 
+// Mock owner-choice
+vi.mock('../bot/handlers/owner-choice', () => ({
+    sendOwnerChoiceOffer: vi.fn(),
+}));
+
 // Mock Redis connection
 vi.mock('ioredis', () => {
     return {
@@ -37,6 +37,15 @@ vi.mock('ioredis', () => {
         })
     }
 });
+
+// Mock Logger
+vi.mock('../lib/logger', () => ({
+    logger: {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+    },
+}));
 
 describe('Background Jobs', () => {
     beforeEach(() => {
@@ -54,9 +63,9 @@ describe('Background Jobs', () => {
     });
 
     describe('processJob', () => {
-        it('should update lot status to WAITING_CHOICE and notify owner if it is in AUCTION', async () => {
+        it('should update lot status to WAITING_CHOICE and call sendOwnerChoiceOffer', async () => {
             const { prisma } = await import('../lib/db');
-            const { bot } = await import('../bot/index');
+            const { sendOwnerChoiceOffer } = await import('../bot/handlers/owner-choice');
 
             (prisma.lot.findUnique as any).mockResolvedValue({
                 id: 'lot-123',
@@ -84,11 +93,11 @@ describe('Background Jobs', () => {
                     }
                 }
             });
-            expect(prisma.$transaction).toHaveBeenCalled();
-            expect(bot.api.sendMessage).toHaveBeenCalledWith(
-                123456,
-                expect.stringContaining('завершен')
-            );
+            expect(prisma.lot.updateMany).toHaveBeenCalledWith({
+                where: { id: 'lot-123', status: 'AUCTION' },
+                data: { status: 'WAITING_CHOICE' }
+            });
+            expect(sendOwnerChoiceOffer).toHaveBeenCalledWith('lot-123', expect.anything());
         });
 
         it('should ignore if lot is not in AUCTION status', async () => {
@@ -107,13 +116,14 @@ describe('Background Jobs', () => {
 
             await processJob(mockJob);
 
-            expect(prisma.$transaction).not.toHaveBeenCalled();
+            expect(prisma.lot.updateMany).not.toHaveBeenCalled();
             expect(bot.api.sendMessage).not.toHaveBeenCalled();
         });
 
-        it('should log error if telegram notification fails', async () => {
+        it('should skip notifications if updateMany returns count 0', async () => {
             const { prisma } = await import('../lib/db');
             const { bot } = await import('../bot/index');
+            const { sendOwnerChoiceOffer } = await import('../bot/handlers/owner-choice');
 
             (prisma.lot.findUnique as any).mockResolvedValue({
                 id: 'lot-123',
@@ -121,8 +131,7 @@ describe('Background Jobs', () => {
                 owner: { telegramId: BigInt(123456) },
                 bids: []
             });
-
-            (bot.api.sendMessage as any).mockRejectedValueOnce(new Error('Telegram API down'));
+            (prisma.lot.updateMany as any).mockResolvedValue({ count: 0 });
 
             const mockJob = {
                 name: 'CLOSE_AUCTION',
@@ -131,10 +140,8 @@ describe('Background Jobs', () => {
 
             await processJob(mockJob);
 
-            expect(console.error).toHaveBeenCalledWith(
-                expect.stringContaining('Failed to send Telegram message to owner of lot lot-123'),
-                expect.any(Error)
-            );
+            expect(bot.api.sendMessage).not.toHaveBeenCalled();
+            expect(sendOwnerChoiceOffer).not.toHaveBeenCalled();
         });
 
         it('should log warning for unknown job', async () => {
@@ -145,7 +152,11 @@ describe('Background Jobs', () => {
 
             await processJob(mockJob);
 
-            expect(console.warn).toHaveBeenCalledWith('Unknown job: UNKNOWN_TASK');
+            const { logger } = await import('../lib/logger');
+            expect(logger.warn).toHaveBeenCalledWith(
+                expect.objectContaining({ jobName: 'UNKNOWN_TASK' }),
+                expect.stringContaining('Unknown job')
+            );
         });
     });
 });

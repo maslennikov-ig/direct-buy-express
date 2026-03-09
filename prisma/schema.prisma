@@ -18,9 +18,10 @@ enum LotStatus {
   DRAFT
   AUCTION
   WAITING_CHOICE
-  WAITING_DEPOSIT
   WAITING_DOCS
   DOCS_AUDIT
+  INVESTOR_REVIEW
+  MANAGER_HANDOFF
   READY_TO_DEAL
   CANCELED
   SOLD
@@ -35,6 +36,7 @@ model User {
   createdAt  DateTime @default(now())
   
   lots            Lot[]             @relation("OwnerLots")
+  wonLots         Lot[]             @relation("WinnerLots")
   bids            Bid[]
   investorProfile InvestorProfile?
 }
@@ -43,6 +45,8 @@ model Lot {
   id             String    @id @default(cuid())
   ownerId        String
   owner          User      @relation("OwnerLots", fields: [ownerId], references: [id])
+  winnerId       String?
+  winner         User?     @relation("WinnerLots", fields: [winnerId], references: [id])
   address        String
   area           Float
   floor          Int
@@ -52,9 +56,10 @@ model Lot {
   hasRegistered  Boolean   @default(false)
   expectedPrice  Decimal
   urgencyReason  String?
-  status         LotStatus @default(DRAFT)
-  auctionEndsAt  DateTime?
-  createdAt      DateTime  @default(now())
+  status            LotStatus @default(DRAFT)
+  investorDecision  String?   // "approved" or "rejected" — set by Investor
+  auctionEndsAt     DateTime?
+  createdAt         DateTime  @default(now())
 
   bids           Bid[]
   media          Media[]
