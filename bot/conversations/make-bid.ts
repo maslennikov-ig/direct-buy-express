@@ -30,9 +30,13 @@ export async function makeBidConversation(conversation: MyConversation, ctx: MyC
 
     if (ctx.callbackQuery) await ctx.answerCallbackQuery();
 
-    await ctx.reply(`Какую цену вы готовы предложить за этот лот?\n\n` +
-        `Введите сумму в рублях цифрами (например, 15500000) оправив мне ответным сообщением.\n` +
-        `Отправьте /cancel чтобы отменить.`);
+    await ctx.reply(
+        `<b>💰 Ваша ставка по лоту</b>\n\n` +
+        `Введите сумму предложения в рублях (цифрами).\n` +
+        `<i>Например: 15500000</i>\n\n` +
+        `Отправьте /cancel чтобы отменить.`,
+        { parse_mode: "HTML" }
+    );
 
     const response = await conversation.wait();
 
@@ -114,7 +118,12 @@ export async function makeBidConversation(conversation: MyConversation, ctx: MyC
             }
         });
 
-        await ctx.reply(`✅ Ваше предложение принято: ${amountAsDecimal.toNumber().toLocaleString("ru-RU")} руб.\n\n Вы можете изменить ставку до конца аукциона, нажав на кнопку в сообщении снова.`);
+        await ctx.reply(
+            `<b>✅ Ставка принята!</b>\n\n` +
+            `Сумма: <b>${amountAsDecimal.toNumber().toLocaleString("ru-RU")} руб.</b>\n\n` +
+            `Вы можете изменить ставку до конца аукциона, нажав кнопку снова.`,
+            { parse_mode: "HTML" }
+        );
     } catch (e: any) {
         console.error(e);
         await ctx.reply(`Произошла ошибка при сохранении ставки. ${e.message}`);

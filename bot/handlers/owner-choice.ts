@@ -48,7 +48,7 @@ export async function sendOwnerChoiceOffer(lotId: string, api: Api): Promise<voi
         return;
     }
 
-    let text = `🏁 ПОЛУЧЕНЫ ПРЕДЛОЖЕНИЯ!\n\nЛот: ${lot.address}\n\nТоп предложения:\n`;
+    let text = `<b>🏁 ИТОГИ АУКЦИОНА!</b>\n\nЛот: <code>${lot.address}</code>\n\n<b>Топ предложения:</b>\n`;
 
     const buttons: Array<{ text: string; callback_data: string }[]> = [];
 
@@ -63,8 +63,8 @@ export async function sendOwnerChoiceOffer(lotId: string, api: Api): Promise<voi
     });
 
     const platformFee = Number(process.env.PLATFORM_FEE_RUB) || DEFAULT_PLATFORM_FEE;
-    text += `\nКомиссия платформы: ${platformFee.toLocaleString('ru-RU')} руб.\n`;
-    text += `\nВыберите предложение или откажитесь:`;
+    text += `\n<i>Комиссия платформы: ${platformFee.toLocaleString('ru-RU')} руб.</i>\n`;
+    text += `\n<b>Выберите предложение или откажитесь:</b>`;
 
     buttons.push([{
         text: '❌ Не согласен',
@@ -73,6 +73,7 @@ export async function sendOwnerChoiceOffer(lotId: string, api: Api): Promise<voi
 
     try {
         await api.sendMessage(Number(lot.owner.telegramId), text, {
+            parse_mode: "HTML",
             reply_markup: { inline_keyboard: buttons },
         });
 
@@ -164,10 +165,12 @@ export async function handleOwnerChoice(
                 const netAmount = calculateNetAmount(bid.amount.toNumber());
                 await api.sendMessage(
                     Number(lot.owner.telegramId),
-                    `✅ Вы приняли предложение на сумму ${netAmount.toLocaleString('ru-RU')} руб. (на руки).\n\n` +
-                    `Теперь загрузите документы в течение 2 часов:\n` +
+                    `<b>✅ Вы приняли предложение!</b>\n\n` +
+                    `Сумма на руки: <b>${netAmount.toLocaleString('ru-RU')} руб.</b>\n\n` +
+                    `Загрузите документы в течение <b>2 часов</b>:\n` +
                     `• Паспорт собственника\n• Выписка ЕГРН\n• Правоустанавливающий документ\n• Справка о прописанных`,
                     {
+                        parse_mode: "HTML",
                         reply_markup: {
                             inline_keyboard: [[{
                                 text: '📄 Загрузить документы',

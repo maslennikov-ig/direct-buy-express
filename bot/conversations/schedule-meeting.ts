@@ -49,8 +49,10 @@ export async function scheduleMeetingConversation(
 
     // Ask for date/time
     await ctx.reply(
-        `📅 Планирование встречи по лоту "${lot.address}"\n\n` +
-        `Введите желаемую дату и время встречи (например: 15.03.2026 14:00):`
+        `<b>📅 Планирование встречи</b>\n\n` +
+        `Лот: <code>${lot.address}</code>\n\n` +
+        `Введите желаемую дату и время встречи:\n<i>Например: 15.03.2026 14:00</i>`,
+        { parse_mode: "HTML" }
     );
 
     const dateTimeMsg = await conversation.waitFor('message:text');
@@ -111,10 +113,11 @@ export async function scheduleMeetingConversation(
     }
 
     await ctx.reply(
-        `✅ Запрос на встречу отправлен!\n\n` +
-        `Дата/время: ${dateTime}\n` +
-        `Место: ${meetingAddress}\n\n` +
-        `Ожидайте подтверждения от собственника.`
+        `<b>✅ Запрос на встречу отправлен!</b>\n\n` +
+        `📅 <b>Дата/время:</b> ${dateTime}\n` +
+        `📍 <b>Место:</b> ${meetingAddress}\n\n` +
+        `Ожидайте подтверждения от собственника.`,
+        { parse_mode: "HTML" }
     );
 
     logger.info({ lotId: lot.id, dateTime, meetingAddress }, 'Meeting scheduled');

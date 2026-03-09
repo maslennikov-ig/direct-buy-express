@@ -47,7 +47,7 @@ services:
   bot:
     build: .
     restart: unless-stopped
-    command: [ "npx", "tsx", "bot/index.ts" ]
+    command: [ "npx", "tsx", "bot/start.ts" ]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-directbuy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-directbuy}
       REDIS_URL: redis://redis:6379

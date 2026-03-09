@@ -78,7 +78,8 @@ describe('makeBidConversation', () => {
             })
         );
         expect(mockCtx.reply).toHaveBeenCalledWith(
-            expect.stringContaining('Ваше предложение принято')
+            expect.stringContaining('Ставка принята'),
+            expect.objectContaining({ parse_mode: 'HTML' })
         );
     });
 });

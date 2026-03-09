@@ -72,7 +72,7 @@ describe('Owner Choice Flow', () => {
             expect(bot.api.sendMessage).toHaveBeenCalledTimes(1);
             const call = (bot.api.sendMessage as any).mock.calls[0];
             expect(call[0]).toBe(111);
-            expect(call[1]).toContain('ПОЛУЧЕНЫ ПРЕДЛОЖЕНИЯ');
+            expect(call[1]).toContain('ИТОГИ АУКЦИОНА');
             expect(call[1]).toContain('4');
             expect(call[1]).toContain('900');
             expect(call[1]).toContain('000');

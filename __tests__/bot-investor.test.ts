@@ -77,7 +77,7 @@ describe('investorRegistrationConversation', () => {
 
         await investorRegistrationConversation(mockConversation, mockCtx);
 
-        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Ваша анкета на модерации'));
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Анкета отправлена на модерацию'), expect.anything());
 
         const { prisma } = await import('../lib/db');
         expect(prisma.investorProfile.upsert).toHaveBeenCalledWith(

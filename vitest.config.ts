@@ -12,6 +12,8 @@ export default defineConfig({
             '**/node_modules/**',
             '**/dist/**',
             '.worktrees/**',
+            // E2E tests require a live DB — run separately with pnpm test:e2e
+            '**/__tests__/e2e/**',
         ],
     },
 });

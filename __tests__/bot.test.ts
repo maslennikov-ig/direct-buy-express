@@ -13,7 +13,8 @@ import { bot } from '../bot/index';
 vi.mock('../lib/db', () => ({
     prisma: {
         user: {
-            upsert: vi.fn().mockResolvedValue({ id: 'mock-user-id', role: 'OWNER' })
+            upsert: vi.fn().mockResolvedValue({ id: 'mock-user-id', role: 'OWNER' }),
+            findUnique: vi.fn().mockResolvedValue(null), // /status: no lots yet
         }
     }
 }));
@@ -71,86 +72,81 @@ describe('Telegram Bot Foundation', () => {
         const sendMessageParams = methodCalls.find((c: any) => c.method === 'sendMessage');
         expect(sendMessageParams).toBeDefined();
         expect(sendMessageParams?.payload.text).toContain('Добро пожаловать в Direct Buy');
-        expect(sendMessageParams?.payload.reply_markup?.inline_keyboard[0][0].callback_data).toBe('accept_terms');
+        // Menu Plugin теперь управляет кнопками — проверяем только наличие reply_markup
+        expect(sendMessageParams?.payload.reply_markup).toBeDefined();
+        expect(sendMessageParams?.payload.reply_markup?.inline_keyboard).toBeDefined();
     });
 
-    it('should handle accept_terms callback_query', async () => {
+    it('should handle bid_lot_ callback_query and enter makeBidConversation', async () => {
         await bot.handleUpdate({
             update_id: 2,
             callback_query: {
                 id: '1',
                 from: { id: 123, is_bot: false, first_name: 'Test' },
-                message: { message_id: 1, chat: { id: 123, type: 'private' } as any, date: 1, text: 'Welcome' },
+                message: { message_id: 1, chat: { id: 123, type: 'private' } as any, date: 1, text: 'Auction' },
                 chat_instance: '123',
-                data: 'accept_terms',
+                data: 'bid_lot_abc123',
             }
         });
 
         const answerQuery = methodCalls.find((c: any) => c.method === 'answerCallbackQuery');
         expect(answerQuery).toBeDefined();
-
-        const editMsg = methodCalls.find((c: any) => c.method === 'editMessageText');
-        expect(editMsg).toBeDefined();
-        expect(editMsg?.payload.text).toContain('Кто вы? Выберите роль');
-        expect(editMsg?.payload.reply_markup.inline_keyboard.length).toBe(3);
+        // conversation.enter is mocked — no real message is sent
+        const sendMessage = methodCalls.find((c: any) => c.method === 'sendMessage');
+        expect(sendMessage).toBeUndefined();
     });
 
-    it('should handle role_owner callback_query and enter conversation', async () => {
+    it('should handle upload_docs_ callback_query and enter uploadDocsConversation', async () => {
+        methodCalls = [];
         await bot.handleUpdate({
             update_id: 3,
             callback_query: {
                 id: '2',
                 from: { id: 123, is_bot: false, first_name: 'Test' },
-                message: { message_id: 1, chat: { id: 123, type: 'private' } as any, date: 1, text: 'Role' },
+                message: { message_id: 1, chat: { id: 123, type: 'private' } as any, date: 1, text: 'Docs' },
                 chat_instance: '123',
-                data: 'role_owner',
+                data: 'upload_docs_abc123',
             }
         });
 
         const answerQuery = methodCalls.find((c: any) => c.method === 'answerCallbackQuery');
         expect(answerQuery).toBeDefined();
-        // Since we mocked conversation, it won't send the first message, which is perfect.
-        const sendMessageParams = methodCalls.find((c: any) => c.method === 'sendMessage');
-        expect(sendMessageParams).toBeUndefined();
     });
 
-    it('should handle role_broker callback_query and enter conversation', async () => {
+    it('should handle /status command', async () => {
         methodCalls = [];
         await bot.handleUpdate({
             update_id: 4,
-            callback_query: {
-                id: '3',
-                from: { id: 123, is_bot: false, first_name: 'Test' },
-                message: { message_id: 1, chat: { id: 123, type: 'private' } as any, date: 1, text: 'Role' },
-                chat_instance: '123',
-                data: 'role_broker',
+            message: {
+                message_id: 2,
+                date: 123456789,
+                chat: { id: 123, type: 'private' } as any,
+                text: '/status',
+                entities: [{ type: 'bot_command', offset: 0, length: 7 }],
+                from: { id: 123, is_bot: false, first_name: 'Test' }
             }
         });
 
-        const answerQuery = methodCalls.find((c: any) => c.method === 'answerCallbackQuery');
-        expect(answerQuery).toBeDefined();
-
-        const sendMessageParams = methodCalls.find((c: any) => c.method === 'sendMessage');
-        expect(sendMessageParams).toBeUndefined();
+        const sendMessage = methodCalls.find((c: any) => c.method === 'sendMessage');
+        expect(sendMessage).toBeDefined();
     });
 
-    it('should handle role_investor callback_query and enter conversation', async () => {
+    it('should handle /help command', async () => {
         methodCalls = [];
         await bot.handleUpdate({
             update_id: 5,
-            callback_query: {
-                id: '4',
-                from: { id: 123, is_bot: false, first_name: 'Test' },
-                message: { message_id: 1, chat: { id: 123, type: 'private' } as any, date: 1, text: 'Role' },
-                chat_instance: '123',
-                data: 'role_investor',
+            message: {
+                message_id: 3,
+                date: 123456789,
+                chat: { id: 123, type: 'private' } as any,
+                text: '/help',
+                entities: [{ type: 'bot_command', offset: 0, length: 5 }],
+                from: { id: 123, is_bot: false, first_name: 'Test' }
             }
         });
 
-        const answerQuery = methodCalls.find((c: any) => c.method === 'answerCallbackQuery');
-        expect(answerQuery).toBeDefined();
-
-        const sendMessageParams = methodCalls.find((c: any) => c.method === 'sendMessage');
-        expect(sendMessageParams).toBeUndefined();
+        const sendMessage = methodCalls.find((c: any) => c.method === 'sendMessage');
+        expect(sendMessage).toBeDefined();
+        expect(sendMessage?.payload.text).toContain('Помощь и поддержка');
     });
 });

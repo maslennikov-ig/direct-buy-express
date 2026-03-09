@@ -8,14 +8,20 @@ export async function investorRegistrationConversation(
 ) {
     if (!ctx.from) return;
 
-    await ctx.reply("Для завершения регистрации ознакомьтесь с Соглашением о конфиденциальности (NDA).", {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "✅ Принимаю", callback_data: "nda_accept" }],
-                [{ text: "❌ Отказываюсь", callback_data: "nda_reject" }]
-            ]
+    await ctx.reply(
+        "<b>📋 Регистрация инвестора</b>\n\n" +
+        "Для завершения регистрации ознакомьтесь с Соглашением о конфиденциальности (<b>NDA</b>).\n\n" +
+        "Без принятия NDA доступ к сделкам невозможен.",
+        {
+            parse_mode: "HTML",
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "✅ Принимаю NDA", callback_data: "nda_accept" }],
+                    [{ text: "❌ Отказываюсь", callback_data: "nda_reject" }]
+                ]
+            }
         }
-    });
+    );
 
     const ndaResponse = await conversation.waitForCallbackQuery(["nda_accept", "nda_reject"]);
     await ndaResponse.answerCallbackQuery();
@@ -92,5 +98,10 @@ export async function investorRegistrationConversation(
         }
     });
 
-    await ctx.reply("Ваша анкета на модерации. Мы сообщим, когда администратор одобрит ваш профиль.");
+    await ctx.reply(
+        "<b>✅ Анкета отправлена на модерацию</b>\n\n" +
+        "Администратор проверит ваш профиль и уведомит вас.\n" +
+        "Обычно это занимает <i>не более 24 часов</i>.",
+        { parse_mode: "HTML" }
+    );
 }
