@@ -18,13 +18,28 @@ export async function scheduleMeetingConversation(
 
     // Find the lot where this user is the winner and status is MANAGER_HANDOFF
     const lot = await conversation.external(async () => {
-        return prisma.lot.findFirst({
+        const res = await prisma.lot.findFirst({
             where: {
                 winner: { telegramId: BigInt(userId) },
                 status: 'MANAGER_HANDOFF',
             },
             include: { owner: true, winner: true },
         });
+
+        if (!res) return null;
+
+        // Strip Prisma Decimal/Date objects to prevent Grammy DataCloneError in conversation state
+        return {
+            id: res.id,
+            address: res.address,
+            owner: res.owner ? {
+                telegramId: res.owner.telegramId ? Number(res.owner.telegramId) : null,
+                fullName: res.owner.fullName,
+            } : null,
+            winner: res.winner ? {
+                fullName: res.winner.fullName,
+            } : null,
+        };
     });
 
     if (!lot) {

@@ -14,11 +14,23 @@ import { autoRetry } from "@grammyjs/auto-retry";
 import { MyContext } from "./types";
 import { logger } from "../lib/logger";
 
-export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_tests");
+const testConfig = process.env.NODE_ENV === 'test' ? {
+    client: {
+        fetch: async (url: any, init: any) => {
+            return new Response(JSON.stringify({ ok: true, result: { message_id: 1, date: 1, chat: { id: 1, type: 'private' } } }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+    }
+} : undefined;
+
+export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_tests", testConfig);
 
 bot.api.config.use(autoRetry());
 
 bot.use(session({ initial: () => ({}) }));
+
 bot.use(authMiddleware);
 bot.use(conversations());
 bot.use(createConversation(createLotConversation));
