@@ -173,3 +173,25 @@ export const processJob = async (job: Job) => {
 
 export const slaWorker = new Worker('sla-timers', processJob, { connection: connection as any });
 
+// Worker event handlers (BullMQ best practice — Context7 docs)
+slaWorker.on('failed', (job, error) => {
+    logger.error({ jobId: job?.id, jobName: job?.name, error }, 'Job failed');
+});
+
+slaWorker.on('error', (error) => {
+    logger.error({ error }, 'Worker error');
+});
+
+slaWorker.on('completed', (job) => {
+    logger.info({ jobId: job.id, jobName: job.name }, 'Job completed');
+});
+
+// Graceful shutdown (Context7: BullMQ production docs)
+const gracefulShutdown = async (signal: string) => {
+    logger.info({ signal }, 'Received shutdown signal, closing worker...');
+    await slaWorker.close();
+    process.exit(0);
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

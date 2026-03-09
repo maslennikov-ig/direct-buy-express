@@ -7,4 +7,11 @@ export default defineConfig({
             '@': path.resolve(__dirname, '.'),
         },
     },
+    test: {
+        exclude: [
+            '**/node_modules/**',
+            '**/dist/**',
+            '.worktrees/**',
+        ],
+    },
 });

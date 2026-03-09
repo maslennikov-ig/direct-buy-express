@@ -5,12 +5,14 @@ import { createLotConversation } from "./conversations/create-lot";
 import { investorRegistrationConversation } from "./conversations/investor-registration";
 import { makeBidConversation } from "./conversations/make-bid";
 import { uploadDocsConversation } from "./conversations/upload-docs";
+import { scheduleMeetingConversation } from "./conversations/schedule-meeting";
 import { handleInvestorDocsDecision } from "./handlers/investor-docs-decision";
 import { handleOwnerChoice } from "./handlers/owner-choice";
 import { handleMeetingResponse } from "./handlers/meeting";
 import { authMiddleware } from "./middleware/auth";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { MyContext } from "./types";
+import { logger } from "../lib/logger";
 
 export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_tests");
 
@@ -23,6 +25,7 @@ bot.use(createConversation(createLotConversation));
 bot.use(createConversation(investorRegistrationConversation));
 bot.use(createConversation(makeBidConversation));
 bot.use(createConversation(uploadDocsConversation));
+bot.use(createConversation(scheduleMeetingConversation));
 
 bot.command("start", (ctx) => {
     ctx.reply("Добро пожаловать в Direct Buy — первую P2P-платформу скоростного выкупа недвижимости в Москве и МО. 🏎\n\nМы исключили из цепочки посредников и лишние комиссии. Здесь вы соединяетесь с капиталом напрямую.\n\nЧтобы начать, примите условия сервиса:\n• [Политика обработки персональных данных]\n• [Соглашение о конфиденциальности (NDA)]", {
@@ -58,6 +61,9 @@ bot.on("callback_query:data", async (ctx) => {
     } else if (ctx.callbackQuery.data.startsWith("upload_docs_")) {
         await ctx.answerCallbackQuery();
         await ctx.conversation.enter("uploadDocsConversation");
+    } else if (ctx.callbackQuery.data.startsWith("schedule_meeting_")) {
+        await ctx.answerCallbackQuery();
+        await ctx.conversation.enter("scheduleMeetingConversation");
     } else if (ctx.callbackQuery.data.startsWith("investor_docs_approve_")) {
         await ctx.answerCallbackQuery();
         const lotId = ctx.callbackQuery.data.replace("investor_docs_approve_", "");
@@ -100,8 +106,25 @@ bot.on("callback_query:data", async (ctx) => {
     }
 });
 
+// Global error handler (grammY best practice — Context7 docs)
+bot.catch((err) => {
+    const ctx = err.ctx;
+    logger.error(
+        { updateId: ctx.update.update_id, error: err.error },
+        `Error while handling update ${ctx.update.update_id}`
+    );
+});
+
 // Avoid running in test environments globally
 if (process.env.NODE_ENV !== 'test' && require.main === module) {
-    run(bot);
-    console.log("Bot started!");
+    const runner = run(bot);
+    logger.info('Bot started!');
+
+    // Graceful shutdown (Context7: grammY runner docs)
+    const stopRunner = () => {
+        logger.info('Received shutdown signal, stopping bot...');
+        if (runner.isRunning()) runner.stop();
+    };
+    process.once('SIGINT', stopRunner);
+    process.once('SIGTERM', stopRunner);
 }

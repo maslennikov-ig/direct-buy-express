@@ -29,7 +29,7 @@ services:
   admin-panel:
     build: .
     restart: unless-stopped
-    command: [ "pnpm", "start" ]
+    command: [ "sh", "-c", "npx prisma migrate deploy && pnpm start" ]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-directbuy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-directbuy}
       REDIS_URL: redis://redis:6379
