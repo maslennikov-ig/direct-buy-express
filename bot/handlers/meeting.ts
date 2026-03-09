@@ -10,7 +10,6 @@ import type { Api } from 'grammy';
  */
 export async function handleScheduleMeeting(
     lotId: string,
-    investorTelegramId: string,
     dateTime: string,
     address: string,
     api: Api
@@ -22,6 +21,12 @@ export async function handleScheduleMeeting(
 
     if (!lot) {
         logger.warn({ lotId }, 'Lot not found for meeting scheduling');
+        return;
+    }
+
+    // Guard: only allow meeting scheduling for lots in MANAGER_HANDOFF status
+    if (lot.status !== 'MANAGER_HANDOFF') {
+        logger.warn({ lotId, status: lot.status }, 'Lot not in MANAGER_HANDOFF status, skipping meeting');
         return;
     }
 

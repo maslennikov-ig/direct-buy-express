@@ -38,11 +38,12 @@ describe('Meeting Scheduling Flow', () => {
             (prisma.lot.findUnique as any).mockResolvedValue({
                 id: 'lot-1',
                 address: 'ул. Ленина, 1',
+                status: 'MANAGER_HANDOFF',
                 owner: { telegramId: BigInt(111), fullName: 'Собственник' },
                 winner: { telegramId: BigInt(222), fullName: 'Инвестор' },
             });
 
-            await handleScheduleMeeting('lot-1', '222', '15.03.2026 14:00', 'ул. Ленина, 1', bot.api);
+            await handleScheduleMeeting('lot-1', '15.03.2026 14:00', 'ул. Ленина, 1', bot.api);
 
             // Owner notification with buttons
             expect(bot.api.sendMessage).toHaveBeenCalledWith(
@@ -71,7 +72,21 @@ describe('Meeting Scheduling Flow', () => {
         it('should handle lot not found', async () => {
             (prisma.lot.findUnique as any).mockResolvedValue(null);
 
-            await handleScheduleMeeting('lot-missing', '222', '15.03.2026', 'addr', bot.api);
+            await handleScheduleMeeting('lot-missing', '15.03.2026', 'addr', bot.api);
+
+            expect(bot.api.sendMessage).not.toHaveBeenCalled();
+        });
+
+        it('should reject meeting for non-MANAGER_HANDOFF lots', async () => {
+            (prisma.lot.findUnique as any).mockResolvedValue({
+                id: 'lot-1',
+                address: 'ул. Ленина, 1',
+                status: 'AUCTION',
+                owner: { telegramId: BigInt(111), fullName: 'Собственник' },
+                winner: { telegramId: BigInt(222), fullName: 'Инвестор' },
+            });
+
+            await handleScheduleMeeting('lot-1', '15.03.2026', 'addr', bot.api);
 
             expect(bot.api.sendMessage).not.toHaveBeenCalled();
         });

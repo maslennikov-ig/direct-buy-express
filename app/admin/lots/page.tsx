@@ -69,7 +69,7 @@ export default async function AdminLotsPage() {
       completedAt: l.createdAt.toLocaleDateString("ru-RU"),
     }));
 
-  // Analytics (using both real and demo)
+  // Analytics
   const soldCount = completedLots.filter((l: any) => l.status === "SOLD").length;
   const canceledCount = completedLots.filter((l: any) => l.status === "CANCELED").length;
   const totalSoldAmount = completedLots

@@ -7,7 +7,7 @@ import { makeBidConversation } from "./conversations/make-bid";
 import { uploadDocsConversation } from "./conversations/upload-docs";
 import { handleInvestorDocsDecision } from "./handlers/investor-docs-decision";
 import { handleOwnerChoice } from "./handlers/owner-choice";
-import { handleMeetingResponse, handleScheduleMeeting } from "./handlers/meeting";
+import { handleMeetingResponse } from "./handlers/meeting";
 import { authMiddleware } from "./middleware/auth";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { MyContext } from "./types";

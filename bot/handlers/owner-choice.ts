@@ -3,14 +3,15 @@ import { slaQueue, QueueJobs } from '../../lib/queue/client';
 import { logger } from '../../lib/logger';
 import type { Api } from 'grammy';
 
-const PLATFORM_FEE = Number(process.env.PLATFORM_FEE_RUB) || 100_000;
+const DEFAULT_PLATFORM_FEE = 100_000;
 
 /**
  * Calculate net amount for the owner (what they receive "на руки").
  * Formula from ТЗ §5: bid_amount - 100_000 (platform fee)
  */
 export function calculateNetAmount(bidAmount: number): number {
-    return bidAmount - PLATFORM_FEE;
+    const fee = Number(process.env.PLATFORM_FEE_RUB) || DEFAULT_PLATFORM_FEE;
+    return bidAmount - fee;
 }
 
 /**
@@ -61,7 +62,8 @@ export async function sendOwnerChoiceOffer(lotId: string, api: Api): Promise<voi
         }]);
     });
 
-    text += `\nКомиссия платформы: ${PLATFORM_FEE.toLocaleString('ru-RU')} руб.\n`;
+    const platformFee = Number(process.env.PLATFORM_FEE_RUB) || DEFAULT_PLATFORM_FEE;
+    text += `\nКомиссия платформы: ${platformFee.toLocaleString('ru-RU')} руб.\n`;
     text += `\nВыберите предложение или откажитесь:`;
 
     buttons.push([{
