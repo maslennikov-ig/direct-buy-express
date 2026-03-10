@@ -1,8 +1,28 @@
 import { prisma } from './db';
+import { connection as pub } from './queue/connection';
+import IORedis from 'ioredis';
 
 // In-memory cache with TTL
 const cache = new Map<string, { value: string; expiresAt: number }>();
 const CACHE_TTL_MS = 60_000; // 60 seconds
+const INVALIDATE_CHANNEL = 'SETTINGS_INVALIDATE';
+
+if (process.env.NODE_ENV !== 'test' && process.env.REDIS_URL) {
+    const sub = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
+    sub.subscribe(INVALIDATE_CHANNEL).catch(console.error);
+    sub.on('message', (channel, message) => {
+        if (channel === INVALIDATE_CHANNEL) {
+            try {
+                const keys: string[] = JSON.parse(message);
+                for (const key of keys) {
+                    cache.delete(key);
+                }
+            } catch (e) {
+                console.error('[SETTINGS] Failed to parse invalidate message', e);
+            }
+        }
+    });
+}
 
 /**
  * Get a setting value by key. Uses in-memory cache with 60s TTL.
@@ -50,7 +70,10 @@ export async function setSetting(key: string, value: string): Promise<void> {
         update: { value },
         create: { key, value },
     });
-    cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+    cache.delete(key);
+    if (process.env.NODE_ENV !== 'test') {
+        pub.publish(INVALIDATE_CHANNEL, JSON.stringify([key])).catch(console.error);
+    }
 }
 
 /**
@@ -79,9 +102,12 @@ export async function updateSettings(entries: Record<string, string>): Promise<v
             })
         )
     );
-    // Invalidate cache
-    for (const [key, value] of Object.entries(entries)) {
-        cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+    const keys = Object.keys(entries);
+    for (const key of keys) {
+        cache.delete(key);
+    }
+    if (process.env.NODE_ENV !== 'test') {
+        pub.publish(INVALIDATE_CHANNEL, JSON.stringify(keys)).catch(console.error);
     }
 }
 

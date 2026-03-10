@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAllSettings, updateSettings, SettingKeys } from '@/lib/settings';
 import { isAuthenticated } from '@/lib/admin-auth';
+import { z } from 'zod';
 
 export async function GET() {
     if (!await isAuthenticated()) {
@@ -15,74 +16,54 @@ export async function GET() {
     }
 }
 
-// Validation rules per key
-const VALIDATORS: Record<string, (v: string) => string | null> = {
-    [SettingKeys.MANAGER_CHAT_ID]: (v) => {
-        const ids = v.split(',').map(s => s.trim()).filter(Boolean);
-        if (ids.length === 0) return 'Необходимо указать хотя бы один ID';
-        if (ids.some(id => isNaN(Number(id)))) return 'Все ID должны быть числами';
-        return null;
-    },
-    [SettingKeys.PLATFORM_FEE_RUB]: (v) => {
-        const n = Number(v);
-        if (isNaN(n) || n < 0) return 'Комиссия должна быть неотрицательным числом';
-        return null;
-    },
-    [SettingKeys.SLA_DOCS_UPLOAD_HOURS]: (v) => {
-        const n = Number(v);
-        if (isNaN(n) || n <= 0) return 'SLA должен быть положительным числом';
-        return null;
-    },
-    [SettingKeys.SLA_INVESTOR_REVIEW_HOURS]: (v) => {
-        const n = Number(v);
-        if (isNaN(n) || n <= 0) return 'SLA должен быть положительным числом';
-        return null;
-    },
-    [SettingKeys.SLA_OFFER_RESPONSE_HOURS]: (v) => {
-        const n = Number(v);
-        if (isNaN(n) || n <= 0) return 'SLA должен быть положительным числом';
-        return null;
-    },
-    [SettingKeys.BOT_ACTIVE]: (v) => {
-        if (v !== 'true' && v !== 'false') return 'Значение должно быть true или false';
-        return null;
-    },
-};
+// Zod schema for settings validation
+const settingsSchema = z.object({
+    [SettingKeys.MANAGER_CHAT_ID]: z.string()
+        .refine(v => {
+            const ids = v.split(',').map(s => s.trim()).filter(Boolean);
+            return ids.length > 0 && ids.every(id => !isNaN(Number(id)));
+        }, { message: 'Укажите хотя бы один ID, и все ID должны быть числами' }),
+    
+    [SettingKeys.PLATFORM_FEE_RUB]: z.string()
+        .refine(v => !isNaN(Number(v)) && Number(v) >= 0, { message: 'Комиссия должна быть неотрицательным числом' }),
+        
+    [SettingKeys.SLA_DOCS_UPLOAD_HOURS]: z.string()
+        .refine(v => !isNaN(Number(v)) && Number(v) > 0, { message: 'SLA должен быть положительным числом' }),
+        
+    [SettingKeys.SLA_INVESTOR_REVIEW_HOURS]: z.string()
+        .refine(v => !isNaN(Number(v)) && Number(v) > 0, { message: 'SLA должен быть положительным числом' }),
+        
+    [SettingKeys.SLA_OFFER_RESPONSE_HOURS]: z.string()
+        .refine(v => !isNaN(Number(v)) && Number(v) > 0, { message: 'SLA должен быть положительным числом' }),
+        
+    [SettingKeys.BOT_ACTIVE]: z.string()
+        .refine(v => v === 'true' || v === 'false', { message: 'Значение должно быть true или false' }),
+}).partial();
 
 export async function PUT(request: Request) {
     if (!await isAuthenticated()) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     try {
-        const body: Record<string, string> = await request.json();
+        const body = await request.json();
 
         if (!body || typeof body !== 'object' || Object.keys(body).length === 0) {
             return NextResponse.json({ error: 'Пустой запрос' }, { status: 400 });
         }
 
-        // Validate each field
-        const validKeys = Object.values(SettingKeys) as string[];
-        const errors: Record<string, string> = {};
-
-        for (const [key, value] of Object.entries(body)) {
-            if (!validKeys.includes(key)) {
-                errors[key] = 'Неизвестный параметр';
-                continue;
+        const parsed = settingsSchema.safeParse(body);
+        
+        if (!parsed.success) {
+            const errors: Record<string, string> = {};
+            for (const issue of parsed.error.issues) {
+                errors[issue.path[0] as string] = issue.message;
             }
-            const validator = VALIDATORS[key];
-            if (validator) {
-                const error = validator(String(value));
-                if (error) errors[key] = error;
-            }
-        }
-
-        if (Object.keys(errors).length > 0) {
             return NextResponse.json({ error: 'Ошибки валидации', details: errors }, { status: 400 });
         }
 
         // Convert all values to strings
         const toSave: Record<string, string> = {};
-        for (const [key, value] of Object.entries(body)) {
+        for (const [key, value] of Object.entries(parsed.data)) {
             toSave[key] = String(value);
         }
 
