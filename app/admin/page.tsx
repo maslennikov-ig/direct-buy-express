@@ -1,22 +1,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, Activity, CheckCircle2, Users, FileText, Clock } from "lucide-react";
+import { AlertCircle, Activity, CheckCircle2, Users, FileText } from "lucide-react";
+import { prisma } from "@/lib/db";
 
-// Demo data — заменится реальными Prisma-запросами при подключении БД
-const kpis = [
-  { title: "Активных аукционов", value: "12", icon: Activity, color: "text-blue-500" },
-  { title: "На аудите документов", value: "3", icon: FileText, color: "text-purple-500" },
-  { title: "Ждут проверки (Инвесторы)", value: "5", icon: Users, color: "text-amber-500" },
-];
+export default async function AdminDashboard() {
+  // Real DB queries
+  const [activeAuctions, docsAuditCount, pendingInvestorsCount, waitingDocsLots] = await Promise.all([
+    prisma.lot.count({ where: { status: 'AUCTION' } }),
+    prisma.lot.count({ where: { status: 'DOCS_AUDIT' } }),
+    prisma.investorProfile.count({ where: { isVerified: false } }),
+    prisma.lot.findMany({
+      where: { status: 'WAITING_DOCS' },
+      include: { owner: true },
+      orderBy: { auctionEndsAt: 'asc' },
+      take: 10,
+    }),
+  ]);
 
-const slaAlerts = [
-  { id: "LOT-1042", address: "г. Москва, ул. Тверская, д. 15", status: "Ожидает документы", delay: "2ч 15м", owner: "Иванов А.А." },
-  { id: "LOT-1038", address: "г. Санкт-Петербург, Невский пр., д. 45", status: "Клиент молчит", delay: "4ч 30м", owner: "Петрова М.В." },
-  { id: "LOT-1045", address: "г. Казань, ул. Баумана, д. 10", status: "Ожидает документы", delay: "2ч 05м", owner: "Сидоров К.Н." },
-];
+  const kpis = [
+    { title: "Активных аукционов", value: String(activeAuctions), icon: Activity, color: "text-blue-500" },
+    { title: "На аудите документов", value: String(docsAuditCount), icon: FileText, color: "text-purple-500" },
+    { title: "Ждут проверки (Инвесторы)", value: String(pendingInvestorsCount), icon: Users, color: "text-amber-500" },
+  ];
 
-export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
@@ -41,42 +48,47 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* SLA Alerts Table */}
+      {/* SLA Alerts — lots waiting for documents */}
       <Card className="bg-black border-white/10">
         <CardHeader>
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-500" />
-            <CardTitle>Требуют внимания (SLA Alerts)</CardTitle>
+            <CardTitle>Требуют внимания (SLA — ожидание документов)</CardTitle>
           </div>
-          <p className="text-sm text-white/50">Лоты, ожидающие загрузки документов.</p>
+          <p className="text-sm text-white/50">Лоты, ожидающие загрузки документов от собственника.</p>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/10 hover:bg-white/5">
-                <TableHead className="text-white/50">ID Лота</TableHead>
-                <TableHead className="text-white/50">Адрес</TableHead>
-                <TableHead className="text-white/50">Собственник</TableHead>
-                <TableHead className="text-white/50">Статус</TableHead>
-                <TableHead className="text-white/50 text-right">Задержка</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {slaAlerts.map((alert) => (
-                <TableRow key={alert.id} className="border-white/10 hover:bg-white/5">
-                  <TableCell className="font-medium">{alert.id}</TableCell>
-                  <TableCell>{alert.address}</TableCell>
-                  <TableCell className="text-white/70">{alert.owner}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="border-red-500/30 text-red-500 bg-red-500/10">
-                      {alert.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-red-500">{alert.delay}</TableCell>
+          {waitingDocsLots.length === 0 ? (
+            <div className="flex items-center gap-2 text-white/40 py-4">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span>Все лоты в порядке, просрочек нет.</span>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-white/5">
+                  <TableHead className="text-white/50">Адрес</TableHead>
+                  <TableHead className="text-white/50">Собственник</TableHead>
+                  <TableHead className="text-white/50">Телефон</TableHead>
+                  <TableHead className="text-white/50 text-right">SLA до</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {waitingDocsLots.map((lot) => (
+                  <TableRow key={lot.id} className="border-white/10 hover:bg-white/5">
+                    <TableCell className="font-medium">{lot.address}</TableCell>
+                    <TableCell className="text-white/70">{lot.owner?.fullName || 'Не указан'}</TableCell>
+                    <TableCell className="text-white/50">{lot.owner?.phone || '—'}</TableCell>
+                    <TableCell className="text-right font-mono text-red-500">
+                      {lot.auctionEndsAt
+                        ? new Date(lot.auctionEndsAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        : '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
