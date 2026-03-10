@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/db';
 import { logger } from '../../lib/logger';
+import { notifyManagers } from '../../lib/notify-managers';
 import type { Api } from 'grammy';
 
 /**
@@ -60,23 +61,17 @@ export async function handleScheduleMeeting(
         }
     }
 
-    // Alert manager
-    const managerChatId = process.env.MANAGER_CHAT_ID;
-    if (managerChatId) {
-        try {
-            await api.sendMessage(
-                Number(managerChatId),
-                `📅 Запланирована встреча\n\n` +
-                `Лот: ${lot.address}\n` +
-                `Дата/время: ${dateTime}\n` +
-                `Место: ${address}\n` +
-                `Собственник: ${lot.owner?.fullName || 'Неизвестно'}\n` +
-                `Инвестор: ${lot.winner?.fullName || 'Неизвестно'}`
-            );
-        } catch (err) {
-            logger.error({ err, lotId }, 'Failed to notify manager about meeting');
-        }
-    }
+    // Alert managers
+    await notifyManagers(
+        api,
+        `📅 Запланирована встреча\n\n` +
+        `Лот: ${lot.address}\n` +
+        `Дата/время: ${dateTime}\n` +
+        `Место: ${address}\n` +
+        `Собственник: ${lot.owner?.fullName || 'Неизвестно'}\n` +
+        `Инвестор: ${lot.winner?.fullName || 'Неизвестно'}`,
+        'meeting-scheduled'
+    );
 }
 
 /**
@@ -97,8 +92,6 @@ export async function handleMeetingResponse(
         return;
     }
 
-    const managerChatId = process.env.MANAGER_CHAT_ID;
-
     if (response === 'confirmed') {
         // Notify investor
         if (lot.winner?.telegramId) {
@@ -112,17 +105,12 @@ export async function handleMeetingResponse(
             }
         }
 
-        // Notify manager
-        if (managerChatId) {
-            try {
-                await api.sendMessage(
-                    Number(managerChatId),
-                    `✅ Встреча подтверждена!\n\nЛот: ${lot.address}\nСобственник: ${lot.owner?.fullName || 'Неизвестно'}\nИнвестор: ${lot.winner?.fullName || 'Неизвестно'}`
-                );
-            } catch (err) {
-                logger.error({ err, lotId }, 'Failed to notify manager about meeting confirmation');
-            }
-        }
+        // Notify managers
+        await notifyManagers(
+            api,
+            `✅ Встреча подтверждена!\n\nЛот: ${lot.address}\nСобственник: ${lot.owner?.fullName || 'Неизвестно'}\nИнвестор: ${lot.winner?.fullName || 'Неизвестно'}`,
+            'meeting-confirmed'
+        );
     } else {
         // Notify investor about rejection
         if (lot.winner?.telegramId) {
@@ -136,16 +124,11 @@ export async function handleMeetingResponse(
             }
         }
 
-        // Notify manager
-        if (managerChatId) {
-            try {
-                await api.sendMessage(
-                    Number(managerChatId),
-                    `❌ Встреча отклонена собственником!\n\nЛот: ${lot.address}\nСобственник: ${lot.owner?.fullName || 'Неизвестно'}\nИнвестор: ${lot.winner?.fullName || 'Неизвестно'}\n\n👉 Требуется подобрать другое время.`
-                );
-            } catch (err) {
-                logger.error({ err, lotId }, 'Failed to notify manager about meeting rejection');
-            }
-        }
+        // Notify managers
+        await notifyManagers(
+            api,
+            `❌ Встреча отклонена собственником!\n\nЛот: ${lot.address}\nСобственник: ${lot.owner?.fullName || 'Неизвестно'}\nИнвестор: ${lot.winner?.fullName || 'Неизвестно'}\n\n👉 Требуется подобрать другое время.`,
+            'meeting-rejected'
+        );
     }
 }

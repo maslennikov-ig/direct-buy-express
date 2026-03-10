@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/db';
+import { notifyManagers } from '../../lib/notify-managers';
 import type { Api } from 'grammy';
 
 /**
@@ -65,19 +66,13 @@ export async function handleInvestorDocsDecision(
         }
     }
 
-    // CR-2: Notify Manager via Telegram so they know to call clients
-    const managerChatId = process.env.MANAGER_CHAT_ID;
-    if (managerChatId) {
-        try {
-            const emoji = decision === 'approved' ? '✅' : '❌';
-            await api.sendMessage(
-                Number(managerChatId),
-                `${emoji} Инвестор ${decision === 'approved' ? 'одобрил' : 'отклонил'} документы.\n\nЛот: ${lot.address}\nСобственник: ${lot.owner?.fullName || 'Неизвестно'}\nИнвестор: ${lot.winner?.fullName || 'Неизвестно'}\n\n👉 Свяжитесь с обеими сторонами.`
-            );
-        } catch (err) {
-            console.error('Failed to notify manager:', err);
-        }
-    }
+    // CR-2: Notify Managers via Telegram so they know to call clients
+    const emoji = decision === 'approved' ? '✅' : '❌';
+    await notifyManagers(
+        api,
+        `${emoji} Инвестор ${decision === 'approved' ? 'одобрил' : 'отклонил'} документы.\n\nЛот: ${lot.address}\nСобственник: ${lot.owner?.fullName || 'Неизвестно'}\nИнвестор: ${lot.winner?.fullName || 'Неизвестно'}\n\n👉 Свяжитесь с обеими сторонами.`,
+        'investor-docs-decision'
+    );
 
     console.log(`Lot ${lotId}: investor decision="${decision}" → MANAGER_HANDOFF`);
 }

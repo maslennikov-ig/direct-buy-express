@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/db';
 import { logger } from '../../lib/logger';
+import { notifyManagers } from '../../lib/notify-managers';
 import type { MyConversation, MyContext } from '../types';
 
 /**
@@ -94,23 +95,17 @@ export async function scheduleMeetingConversation(
         }
     }
 
-    // Notify manager
-    const managerChatId = process.env.MANAGER_CHAT_ID;
-    if (managerChatId) {
-        try {
-            await ctx.api.sendMessage(
-                Number(managerChatId),
-                `📅 Запланирована встреча\n\n` +
-                `Лот: ${lot.address}\n` +
-                `Дата/время: ${dateTime}\n` +
-                `Место: ${meetingAddress}\n` +
-                `Собственник: ${lot.owner?.fullName || 'Неизвестно'}\n` +
-                `Инвестор: ${lot.winner?.fullName || 'Неизвестно'}`
-            );
-        } catch (err) {
-            logger.error({ err, lotId: lot.id }, 'Failed to notify manager about meeting');
-        }
-    }
+    // Notify managers
+    await notifyManagers(
+        ctx.api,
+        `📅 Запланирована встреча\n\n` +
+        `Лот: ${lot.address}\n` +
+        `Дата/время: ${dateTime}\n` +
+        `Место: ${meetingAddress}\n` +
+        `Собственник: ${lot.owner?.fullName || 'Неизвестно'}\n` +
+        `Инвестор: ${lot.winner?.fullName || 'Неизвестно'}`,
+        'meeting-scheduled-conversation'
+    );
 
     await ctx.reply(
         `<b>✅ Запрос на встречу отправлен!</b>\n\n` +

@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/db';
 import { slaQueue, QueueJobs } from '../../lib/queue/client';
 import { logger } from '../../lib/logger';
+import { notifyManagers } from '../../lib/notify-managers';
 import type { Api } from 'grammy';
 
 const DEFAULT_PLATFORM_FEE = 100_000;
@@ -197,23 +198,17 @@ export async function handleOwnerChoice(
             }
         }
 
-        // Notify manager
-        const managerChatId = process.env.MANAGER_CHAT_ID;
-        if (managerChatId) {
-            try {
-                await api.sendMessage(
-                    Number(managerChatId),
-                    `✅ Собственник принял предложение!\n\n` +
-                    `Лот: ${lot?.address}\n` +
-                    `Ставка: ${bid.amount.toNumber().toLocaleString('ru-RU')} руб.\n` +
-                    `Собственник: ${lot?.owner?.fullName || 'Неизвестно'}\n` +
-                    `Инвестор: ${bid.investor?.fullName || 'Неизвестно'}\n\n` +
-                    `Статус: WAITING_DOCS. SLA 2 часа.`
-                );
-            } catch (err) {
-                logger.error({ err, lotId }, 'Failed to notify manager about owner choice');
-            }
-        }
+        // Notify managers
+        await notifyManagers(
+            api,
+            `✅ Собственник принял предложение!\n\n` +
+            `Лот: ${lot?.address}\n` +
+            `Ставка: ${bid.amount.toNumber().toLocaleString('ru-RU')} руб.\n` +
+            `Собственник: ${lot?.owner?.fullName || 'Неизвестно'}\n` +
+            `Инвестор: ${bid.investor?.fullName || 'Неизвестно'}\n\n` +
+            `Статус: WAITING_DOCS. SLA 2 часа.`,
+            'owner-choice-agreed'
+        );
     } else {
         // Rejected — alert manager
         const lot = await prisma.lot.findUnique({
@@ -221,20 +216,14 @@ export async function handleOwnerChoice(
             include: { owner: true },
         });
 
-        const managerChatId = process.env.MANAGER_CHAT_ID;
-        if (managerChatId) {
-            try {
-                await api.sendMessage(
-                    Number(managerChatId),
-                    `❌ Собственник НЕ согласен с предложениями!\n\n` +
-                    `Лот: ${lot?.address || lotId}\n` +
-                    `Собственник: ${lot?.owner?.fullName || 'Неизвестно'}\n\n` +
-                    `👉 Требуется ручное вмешательство для дожима.`
-                );
-            } catch (err) {
-                logger.error({ err, lotId }, 'Failed to notify manager about owner rejection');
-            }
-        }
+        await notifyManagers(
+            api,
+            `❌ Собственник НЕ согласен с предложениями!\n\n` +
+            `Лот: ${lot?.address || lotId}\n` +
+            `Собственник: ${lot?.owner?.fullName || 'Неизвестно'}\n\n` +
+            `👉 Требуется ручное вмешательство для дожима.`,
+            'owner-choice-rejected'
+        );
 
         // Notify owner
         if (lot?.owner?.telegramId) {

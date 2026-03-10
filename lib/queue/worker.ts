@@ -4,6 +4,7 @@ import { prisma } from '../db';
 import { bot } from '../../bot/index';
 import { logger } from '../logger';
 import { sendOwnerChoiceOffer } from '../../bot/handlers/owner-choice';
+import { notifyManagers } from '../notify-managers';
 
 export const processJob = async (job: Job) => {
     switch (job.name) {
@@ -64,17 +65,11 @@ export const processJob = async (job: Job) => {
             });
 
             if (docsLot && docsLot.status === 'WAITING_DOCS') {
-                const managerChatId = process.env.MANAGER_CHAT_ID;
-                if (managerChatId) {
-                    try {
-                        await bot.api.sendMessage(
-                            Number(managerChatId),
-                            `⚠️ SLA нарушен! Собственник не загрузил документы в течение 2 часов.\n\nЛот: ${docsLot.address}\nID: ${docsLot.id}\nСобственник: ${docsLot.owner?.fullName || 'Неизвестно'}`
-                        );
-                    } catch (err) {
-                        logger.error({ err, lotId: docsLot.id }, 'Failed to notify manager about SLA_DOCS_UPLOAD');
-                    }
-                }
+                await notifyManagers(
+                    bot.api,
+                    `⚠️ SLA нарушен! Собственник не загрузил документы в течение 2 часов.\n\nЛот: ${docsLot.address}\nID: ${docsLot.id}\nСобственник: ${docsLot.owner?.fullName || 'Неизвестно'}`,
+                    'SLA_DOCS_UPLOAD'
+                );
 
                 if (docsLot.owner && docsLot.owner.telegramId) {
                     try {
@@ -101,17 +96,11 @@ export const processJob = async (job: Job) => {
             });
 
             if (reviewLot && reviewLot.status === 'INVESTOR_REVIEW') {
-                const mgrChatId = process.env.MANAGER_CHAT_ID;
-                if (mgrChatId) {
-                    try {
-                        await bot.api.sendMessage(
-                            Number(mgrChatId),
-                            `⚠️ SLA нарушен! Инвестор не принял решение по документам в течение 24 часов.\n\nЛот: ${reviewLot.address}\nID: ${reviewLot.id}\nСобственник: ${reviewLot.owner?.fullName || 'Неизвестно'}\nИнвестор: ${reviewLot.winner?.fullName || 'Неизвестно'}`
-                        );
-                    } catch (err) {
-                        logger.error({ err, lotId: reviewLot.id }, 'Failed to notify manager about SLA_INVESTOR_REVIEW');
-                    }
-                }
+                await notifyManagers(
+                    bot.api,
+                    `⚠️ SLA нарушен! Инвестор не принял решение по документам в течение 24 часов.\n\nЛот: ${reviewLot.address}\nID: ${reviewLot.id}\nСобственник: ${reviewLot.owner?.fullName || 'Неизвестно'}\nИнвестор: ${reviewLot.winner?.fullName || 'Неизвестно'}`,
+                    'SLA_INVESTOR_REVIEW'
+                );
 
                 if (reviewLot.winner?.telegramId) {
                     try {
@@ -138,17 +127,11 @@ export const processJob = async (job: Job) => {
             });
 
             if (offerLot && offerLot.status === 'WAITING_CHOICE') {
-                const mgrId = process.env.MANAGER_CHAT_ID;
-                if (mgrId) {
-                    try {
-                        await bot.api.sendMessage(
-                            Number(mgrId),
-                            `⚠️ SLA нарушен! Собственник не принял решение по предложениям в течение 2 часов.\n\nЛот: ${offerLot.address}\nID: ${offerLot.id}\nСобственник: ${offerLot.owner?.fullName || 'Неизвестно'}\n\n👉 Требуется ручное вмешательство.`
-                        );
-                    } catch (err) {
-                        logger.error({ err, lotId: offerLot.id }, 'Failed to notify manager about SLA_OFFER_RESPONSE');
-                    }
-                }
+                await notifyManagers(
+                    bot.api,
+                    `⚠️ SLA нарушен! Собственник не принял решение по предложениям в течение 2 часов.\n\nЛот: ${offerLot.address}\nID: ${offerLot.id}\nСобственник: ${offerLot.owner?.fullName || 'Неизвестно'}\n\n👉 Требуется ручное вмешательство.`,
+                    'SLA_OFFER_RESPONSE'
+                );
 
                 if (offerLot.owner?.telegramId) {
                     try {
