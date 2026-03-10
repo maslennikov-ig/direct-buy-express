@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { Building2, LayoutDashboard, ListOrdered, Users, Settings, LogOut } from "lucide-react";
+import { Building2 } from "lucide-react";
+import { AdminSidebar } from "./components/admin-sidebar";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,31 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
         
-        <div className="flex-1 py-6 px-4 flex flex-col gap-2">
-          <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-md bg-white/10 text-white font-medium">
-            <LayoutDashboard className="w-5 h-5" />
-            Дашборд
-          </Link>
-          <Link href="/admin/lots" className="flex items-center gap-3 px-3 py-2 rounded-md text-white/60 hover:text-white hover:bg-white/5 transition-colors">
-            <ListOrdered className="w-5 h-5" />
-            Заявки (Аукционы)
-          </Link>
-          <Link href="/admin/investors" className="flex items-center gap-3 px-3 py-2 rounded-md text-white/60 hover:text-white hover:bg-white/5 transition-colors">
-            <Users className="w-5 h-5" />
-            Инвесторы
-          </Link>
-          <Link href="/admin/settings" className="flex items-center gap-3 px-3 py-2 rounded-md text-white/60 hover:text-white hover:bg-white/5 transition-colors">
-            <Settings className="w-5 h-5" />
-            Настройки
-          </Link>
-        </div>
-
-        <div className="p-4 border-t border-white/10">
-          <button className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-white/60 hover:text-white hover:bg-white/5 transition-colors">
-            <LogOut className="w-5 h-5" />
-            Выйти
-          </button>
-        </div>
+        <AdminSidebar />
       </aside>
 
       {/* Main Content */}
