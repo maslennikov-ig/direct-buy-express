@@ -2,6 +2,7 @@ import { prisma } from '../../lib/db';
 import { slaQueue, QueueJobs } from '../../lib/queue/client';
 import { logger } from '../../lib/logger';
 import { notifyManagers } from '../../lib/notify-managers';
+import { getNumericSetting, SettingKeys } from '../../lib/settings';
 import type { Api } from 'grammy';
 
 const DEFAULT_PLATFORM_FEE = 100_000;
@@ -10,8 +11,8 @@ const DEFAULT_PLATFORM_FEE = 100_000;
  * Calculate net amount for the owner (what they receive "на руки").
  * Formula from ТЗ §5: bid_amount - 100_000 (platform fee)
  */
-export function calculateNetAmount(bidAmount: number): number {
-    const fee = Number(process.env.PLATFORM_FEE_RUB) || DEFAULT_PLATFORM_FEE;
+export async function calculateNetAmount(bidAmount: number): Promise<number> {
+    const fee = await getNumericSetting(SettingKeys.PLATFORM_FEE_RUB, DEFAULT_PLATFORM_FEE);
     return bidAmount - fee;
 }
 
@@ -53,17 +54,18 @@ export async function sendOwnerChoiceOffer(lotId: string, api: Api): Promise<voi
 
     const buttons: Array<{ text: string; callback_data: string }[]> = [];
 
-    lot.bids.forEach((bid, i) => {
+    for (let i = 0; i < lot.bids.length; i++) {
+        const bid = lot.bids[i];
         const bidAmount = bid.amount.toNumber();
-        const netAmount = calculateNetAmount(bidAmount);
+        const netAmount = await calculateNetAmount(bidAmount);
         text += `${i + 1}. ${bidAmount.toLocaleString('ru-RU')} руб. → на руки: ${netAmount.toLocaleString('ru-RU')} руб.\n`;
         buttons.push([{
             text: `✅ Согласен (#${i + 1}: ${netAmount.toLocaleString('ru-RU')} руб.)`,
             callback_data: `owner_agree_bid_${bid.id}_lot_${lotId}`,
         }]);
-    });
+    }
 
-    const platformFee = Number(process.env.PLATFORM_FEE_RUB) || DEFAULT_PLATFORM_FEE;
+    const platformFee = await getNumericSetting(SettingKeys.PLATFORM_FEE_RUB, DEFAULT_PLATFORM_FEE);
     text += `\n<i>Комиссия платформы: ${platformFee.toLocaleString('ru-RU')} руб.</i>\n`;
     text += `\n<b>Выберите предложение или откажитесь:</b>`;
 
@@ -78,8 +80,9 @@ export async function sendOwnerChoiceOffer(lotId: string, api: Api): Promise<voi
             reply_markup: { inline_keyboard: buttons },
         });
 
-        // Schedule SLA_OFFER_RESPONSE (2 hours — ТЗ §7)
-        const SLA_OFFER_RESPONSE_DELAY = 2 * 60 * 60 * 1000;
+        // Schedule SLA_OFFER_RESPONSE from settings
+        const slaOfferHours = await getNumericSetting(SettingKeys.SLA_OFFER_RESPONSE_HOURS, 2);
+        const SLA_OFFER_RESPONSE_DELAY = slaOfferHours * 60 * 60 * 1000;
         try {
             await slaQueue.add(QueueJobs.SLA_OFFER_RESPONSE, { lotId }, {
                 delay: SLA_OFFER_RESPONSE_DELAY,
@@ -142,8 +145,9 @@ export async function handleOwnerChoice(
             return;
         }
 
-        // Schedule SLA_DOCS_UPLOAD (2 hours)
-        const SLA_DOCS_UPLOAD_DELAY = 2 * 60 * 60 * 1000; // 2 hours in ms
+        // Schedule SLA_DOCS_UPLOAD from settings
+        const slaDocsHours = await getNumericSetting(SettingKeys.SLA_DOCS_UPLOAD_HOURS, 2);
+        const SLA_DOCS_UPLOAD_DELAY = slaDocsHours * 60 * 60 * 1000;
         try {
             await slaQueue.add(QueueJobs.SLA_DOCS_UPLOAD, { lotId }, {
                 delay: SLA_DOCS_UPLOAD_DELAY,
@@ -163,7 +167,7 @@ export async function handleOwnerChoice(
         // Notify owner
         if (lot?.owner?.telegramId) {
             try {
-                const netAmount = calculateNetAmount(bid.amount.toNumber());
+                const netAmount = await calculateNetAmount(bid.amount.toNumber());
                 await api.sendMessage(
                     Number(lot.owner.telegramId),
                     `<b>✅ Вы приняли предложение!</b>\n\n` +

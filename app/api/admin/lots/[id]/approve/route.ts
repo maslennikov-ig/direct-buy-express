@@ -43,11 +43,13 @@ export async function POST(
             );
         }
 
-        // Schedule SLA timer: 24h for investor to review docs
+        // Schedule SLA timer from DB settings
         try {
             const { slaQueue } = await import('@/lib/queue/client');
+            const { getNumericSetting, SettingKeys } = await import('@/lib/settings');
+            const slaHours = await getNumericSetting(SettingKeys.SLA_INVESTOR_REVIEW_HOURS, 24);
             await slaQueue.add('SLA_INVESTOR_REVIEW', { lotId: id }, {
-                delay: 24 * 60 * 60 * 1000, // 24 hours
+                delay: slaHours * 60 * 60 * 1000,
                 removeOnComplete: true,
                 jobId: `sla-investor-review-${id}`
             });

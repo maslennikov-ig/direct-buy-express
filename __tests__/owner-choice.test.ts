@@ -39,6 +39,18 @@ vi.mock('../lib/queue/client', () => ({
     },
 }));
 
+vi.mock('../lib/settings', () => ({
+    getNumericSetting: vi.fn().mockImplementation((_key: string, fallback: number) => Promise.resolve(fallback)),
+    SettingKeys: {
+        MANAGER_CHAT_ID: 'MANAGER_CHAT_ID',
+        PLATFORM_FEE_RUB: 'PLATFORM_FEE_RUB',
+        SLA_DOCS_UPLOAD_HOURS: 'SLA_DOCS_UPLOAD_HOURS',
+        SLA_INVESTOR_REVIEW_HOURS: 'SLA_INVESTOR_REVIEW_HOURS',
+        SLA_OFFER_RESPONSE_HOURS: 'SLA_OFFER_RESPONSE_HOURS',
+        BOT_ACTIVE: 'BOT_ACTIVE',
+    },
+}));
+
 describe('Owner Choice Flow', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -46,11 +58,11 @@ describe('Owner Choice Flow', () => {
     });
 
     describe('calculateNetAmount', () => {
-        it('should subtract 100,000 platform fee from bid amount', () => {
-            expect(calculateNetAmount(5_000_000)).toBe(4_900_000);
-            expect(calculateNetAmount(10_000_000)).toBe(9_900_000);
-            expect(calculateNetAmount(100_000)).toBe(0);
-            expect(calculateNetAmount(50_000)).toBe(-50_000);
+        it('should subtract 100,000 platform fee from bid amount', async () => {
+            expect(await calculateNetAmount(5_000_000)).toBe(4_900_000);
+            expect(await calculateNetAmount(10_000_000)).toBe(9_900_000);
+            expect(await calculateNetAmount(100_000)).toBe(0);
+            expect(await calculateNetAmount(50_000)).toBe(-50_000);
         });
     });
 
