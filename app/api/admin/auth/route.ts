@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         }
 
         // 2. Check if user is in MANAGER_CHAT_ID list
-        const managerIds = getManagerChatIds();
+        const managerIds = await getManagerChatIds();
         if (!managerIds.includes(data.id)) {
             console.warn(`[AUTH] Unauthorized manager access attempt: ID ${data.id} (@${data.username})`);
             return NextResponse.json(

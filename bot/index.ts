@@ -17,6 +17,7 @@ import { startMenu, roleMenu } from "./menus/start-menu";
 import { MyContext } from "./types";
 import { logger } from "../lib/logger";
 import { sessionStorage } from "../lib/session-storage";
+import { getSetting, SettingKeys } from "../lib/settings";
 import { setupBot } from "./setup";
 
 const testConfig = process.env.NODE_ENV === 'test' ? {
@@ -42,6 +43,18 @@ bot.use(session({
     initial: () => ({}),
     ...(useRedis ? { storage: sessionStorage } : {}),
 }));
+
+// Bot active check
+bot.use(async (ctx, next) => {
+    const isActive = await getSetting(SettingKeys.BOT_ACTIVE);
+    if (isActive === 'false') {
+        if (ctx.chat?.type === 'private') {
+            await ctx.reply("🤖 Бот временно отключен на техническое обслуживание.");
+        }
+        return; // drop update
+    }
+    await next();
+});
 
 // Auth middleware: upsert user to DB on every update
 bot.use(authMiddleware);

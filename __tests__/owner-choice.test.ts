@@ -39,17 +39,7 @@ vi.mock('../lib/queue/client', () => ({
     },
 }));
 
-vi.mock('../lib/settings', () => ({
-    getNumericSetting: vi.fn().mockImplementation((_key: string, fallback: number) => Promise.resolve(fallback)),
-    SettingKeys: {
-        MANAGER_CHAT_ID: 'MANAGER_CHAT_ID',
-        PLATFORM_FEE_RUB: 'PLATFORM_FEE_RUB',
-        SLA_DOCS_UPLOAD_HOURS: 'SLA_DOCS_UPLOAD_HOURS',
-        SLA_INVESTOR_REVIEW_HOURS: 'SLA_INVESTOR_REVIEW_HOURS',
-        SLA_OFFER_RESPONSE_HOURS: 'SLA_OFFER_RESPONSE_HOURS',
-        BOT_ACTIVE: 'BOT_ACTIVE',
-    },
-}));
+
 
 describe('Owner Choice Flow', () => {
     beforeEach(() => {

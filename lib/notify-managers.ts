@@ -1,12 +1,13 @@
 import { logger } from './logger';
 import type { Api } from 'grammy';
+import { getSetting, SettingKeys } from './settings';
 
 /**
  * Parse MANAGER_CHAT_ID env variable (supports comma-separated IDs).
  * Example: "82003266,166848328"
  */
-export function getManagerChatIds(): number[] {
-    const raw = process.env.MANAGER_CHAT_ID;
+export async function getManagerChatIds(): Promise<number[]> {
+    const raw = await getSetting(SettingKeys.MANAGER_CHAT_ID);
     if (!raw) return [];
     return raw
         .split(',')
@@ -22,7 +23,7 @@ export function getManagerChatIds(): number[] {
  * Errors for individual managers are logged but don't throw.
  */
 export async function notifyManagers(api: Api, message: string, context?: string): Promise<void> {
-    const ids = getManagerChatIds();
+    const ids = await getManagerChatIds();
     if (ids.length === 0) {
         logger.warn({ context }, 'MANAGER_CHAT_ID is not set, skipping manager notification');
         return;
