@@ -12,7 +12,7 @@ export default async function AdminDashboard() {
     prisma.investorProfile.count({ where: { isVerified: false } }),
     prisma.lot.findMany({
       where: { status: 'WAITING_DOCS' },
-      include: { owner: true },
+      include: { owner: { select: { fullName: true, phone: true } } },
       orderBy: { auctionEndsAt: 'asc' },
       take: 10,
     }),

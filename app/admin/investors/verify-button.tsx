@@ -2,10 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function VerifyButton({ profileId }: { profileId: string }) {
     const [loading, setLoading] = useState(false);
     const [verified, setVerified] = useState(false);
+    const router = useRouter();
 
     const handleVerify = async () => {
         setLoading(true);
@@ -15,6 +17,7 @@ export function VerifyButton({ profileId }: { profileId: string }) {
             });
             if (res.ok) {
                 setVerified(true);
+                router.refresh();
             }
         } catch (error) {
             console.error('Verify error:', error);
