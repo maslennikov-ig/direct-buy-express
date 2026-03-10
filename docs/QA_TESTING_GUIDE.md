@@ -11,7 +11,7 @@
 |---|---|---|
 | Админ-панель | `https://directbuy.aidevteam.ru/admin` | `http://91.132.59.194:3001/admin` |
 | Логин | `https://directbuy.aidevteam.ru/admin/login` | `http://91.132.59.194:3001/admin/login` |
-| Telegram-бот | Ссылка на бота (по BOT_TOKEN) | — |
+| Telegram-бот | [@mo_lot_bot](https://t.me/mo_lot_bot) | — |
 
 **Пароль админки:** задаётся через `ADMIN_PASSWORD` в `.env` (текущее значение: `DirectBuyAdmin2026`)
 
