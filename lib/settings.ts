@@ -7,7 +7,10 @@ const cache = new Map<string, { value: string; expiresAt: number }>();
 const CACHE_TTL_MS = 60_000; // 60 seconds
 const INVALIDATE_CHANNEL = 'SETTINGS_INVALIDATE';
 
-if (process.env.NODE_ENV !== 'test' && process.env.REDIS_URL) {
+const redisSubscriberSingleton = () => {
+    if (process.env.NODE_ENV === 'test' || !process.env.REDIS_URL) {
+        return null;
+    }
     const sub = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
     sub.subscribe(INVALIDATE_CHANNEL).catch(console.error);
     sub.on('message', (channel, message) => {
@@ -22,6 +25,17 @@ if (process.env.NODE_ENV !== 'test' && process.env.REDIS_URL) {
             }
         }
     });
+    return sub;
+};
+
+declare const globalThis: {
+    redisSubscriberGlobal: ReturnType<typeof redisSubscriberSingleton>;
+} & typeof global;
+
+const subscriber = globalThis.redisSubscriberGlobal ?? redisSubscriberSingleton();
+
+if (process.env.NODE_ENV !== 'production' && subscriber) {
+    globalThis.redisSubscriberGlobal = subscriber;
 }
 
 /**

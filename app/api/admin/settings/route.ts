@@ -54,9 +54,15 @@ export async function PUT(request: Request) {
         const parsed = settingsSchema.safeParse(body);
         
         if (!parsed.success) {
+            // Flatten Zod errors into a simple key-value structure
+            // Example: { MANAGER_CHAT_ID: ["Укажите хотя бы один ID"] }
+            // We take the first error message for each field.
+            const fieldErrors = parsed.error.flatten().fieldErrors;
             const errors: Record<string, string> = {};
-            for (const issue of parsed.error.issues) {
-                errors[issue.path[0] as string] = issue.message;
+            for (const [key, messages] of Object.entries(fieldErrors)) {
+                if (messages && messages.length > 0) {
+                    errors[key] = messages[0];
+                }
             }
             return NextResponse.json({ error: 'Ошибки валидации', details: errors }, { status: 400 });
         }
