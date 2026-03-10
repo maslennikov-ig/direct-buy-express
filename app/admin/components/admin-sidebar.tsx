@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ListOrdered, Users, Settings, LogOut } from 'lucide-react';
 
 const navItems = [
@@ -13,10 +13,16 @@ const navItems = [
 
 export function AdminSidebar() {
     const pathname = usePathname();
+    const router = useRouter();
 
     const isActive = (href: string, exact?: boolean) => {
         if (exact) return pathname === href;
         return pathname.startsWith(href);
+    };
+
+    const handleLogout = async () => {
+        await fetch('/api/admin/auth', { method: 'DELETE' });
+        router.push('/admin/login');
     };
 
     return (
@@ -39,7 +45,10 @@ export function AdminSidebar() {
             </div>
 
             <div className="p-4 border-t border-white/10">
-                <button className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 px-3 py-2 rounded-md text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                >
                     <LogOut className="w-5 h-5" />
                     Выйти
                 </button>

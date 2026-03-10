@@ -38,7 +38,7 @@ const settingsSchema = z.object({
         
     [SettingKeys.BOT_ACTIVE]: z.string()
         .refine(v => v === 'true' || v === 'false', { message: 'Значение должно быть true или false' }),
-}).partial();
+}).partial().strict();
 
 export async function PUT(request: Request) {
     if (!await isAuthenticated()) {
