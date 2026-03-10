@@ -5,12 +5,12 @@
 **Перед началом тестирования необходимо:**
 1. Получить **BOT_TOKEN** от @BotFather и прописать его в `.env` на сервере
 2. Установить **MANAGER_CHAT_ID** в `.env` (Telegram ID менеджера для уведомлений). ⚠️ Без этого менеджер не получит алерты от SLA-таймеров
-3. Убедиться, что DNS для `directbuy.symancy.ru` указывает на `91.132.59.194`
+3. Убедиться, что DNS для `directbuy.aidevteam.ru` указывает на `91.132.59.194`
 
 | Компонент | URL (домен) | URL (прямой) |
 |---|---|---|
-| Админ-панель | `http://directbuy.symancy.ru/admin` | `http://91.132.59.194:3001/admin` |
-| Логин | `http://directbuy.symancy.ru/admin/login` | `http://91.132.59.194:3001/admin/login` |
+| Админ-панель | `https://directbuy.aidevteam.ru/admin` | `http://91.132.59.194:3001/admin` |
+| Логин | `https://directbuy.aidevteam.ru/admin/login` | `http://91.132.59.194:3001/admin/login` |
 | Telegram-бот | Ссылка на бота (по BOT_TOKEN) | — |
 
 **Пароль админки:** задаётся через `ADMIN_PASSWORD` в `.env` (текущее значение: `DirectBuyAdmin2026`)
@@ -235,7 +235,7 @@
 ### 🟢 TC-10: Вход в админку
 
 **Шаги:**
-1. Открыть `http://directbuy.symancy.ru/admin` (или `http://91.132.59.194:3001/admin`)
+1. Открыть `https://directbuy.aidevteam.ru/admin` (или `http://91.132.59.194:3001/admin`)
 2. Перенаправит на `/admin/login`
 3. Ввести пароль: `DirectBuyAdmin2026`
 
@@ -312,25 +312,25 @@
 
 ```bash
 # Авторизация админа (получить admin_session cookie)
-curl -v -X POST http://directbuy.symancy.ru/api/admin/auth \
+curl -v -X POST https://directbuy.aidevteam.ru/api/admin/auth \
   -H "Content-Type: application/json" \
   -d '{"password":"DirectBuyAdmin2026"}'
 # В ответе Set-Cookie: admin_session=<TOKEN>
 
 # Одобрить документы лота (перевод DOCS_AUDIT → INVESTOR_REVIEW)
-curl -X POST http://directbuy.symancy.ru/api/admin/lots/<LOT_ID>/approve \
+curl -X POST https://directbuy.aidevteam.ru/api/admin/lots/<LOT_ID>/approve \
   -H "Cookie: admin_session=<TOKEN>"
 
 # Верифицировать инвестора
-curl -X POST http://directbuy.symancy.ru/api/admin/investors/<USER_ID>/verify \
+curl -X POST https://directbuy.aidevteam.ru/api/admin/investors/<USER_ID>/verify \
   -H "Cookie: admin_session=<TOKEN>"
 
 # Завершить сделку
-curl -X POST http://directbuy.symancy.ru/api/admin/lots/<LOT_ID>/complete \
+curl -X POST https://directbuy.aidevteam.ru/api/admin/lots/<LOT_ID>/complete \
   -H "Cookie: admin_session=<TOKEN>"
 
 # Отменить сделку
-curl -X POST http://directbuy.symancy.ru/api/admin/lots/<LOT_ID>/cancel \
+curl -X POST https://directbuy.aidevteam.ru/api/admin/lots/<LOT_ID>/cancel \
   -H "Cookie: admin_session=<TOKEN>"
 ```
 
@@ -366,4 +366,4 @@ curl -X POST http://directbuy.symancy.ru/api/admin/lots/<LOT_ID>/cancel \
 2. **DaData** — без ключа `DADATA_API_KEY` подсказки адресов не работают (не критично)
 3. **Файлы документов** — в тестовом режиме создаются пустые файлы-заглушки
 4. **SLA-таймеры** — в production работают с реальными задержками (2-24 часов)
-5. **SSL** — `directbuy.symancy.ru` работает по HTTP (порт 80), SSL пока не настроен
+5. **SSL** — `directbuy.aidevteam.ru` работает по HTTPS 🔒 (сертификаты Let's Encrypt настроены автоматически).
