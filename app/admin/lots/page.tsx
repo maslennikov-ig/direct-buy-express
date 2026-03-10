@@ -14,67 +14,93 @@ const DOC_LABELS: Record<string, string> = {
 };
 
 export default async function AdminLotsPage() {
-  // Fetch real data from Prisma
-  const realLots = await prisma.lot.findMany({
-    where: {
-      status: { in: ['DOCS_AUDIT', 'MANAGER_HANDOFF', 'SOLD', 'CANCELED'] }
-    },
-    take: 100, // Safe fetch limit
-    include: {
-      owner: true,
-      winner: true,
-      bids: true,
-      media: true,
+  // Fetch specific lots from Prisma with targeted select
+  const auditLotsRaw = await prisma.lot.findMany({
+    where: { status: 'DOCS_AUDIT' },
+    take: 100,
+    select: {
+      id: true,
+      address: true,
+      expectedPrice: true,
+      winnerId: true,
+      owner: { select: { fullName: true } },
+      winner: { select: { fullName: true } },
+      bids: { select: { amount: true, investorId: true } },
+      media: { select: { id: true, type: true } },
     },
     orderBy: { createdAt: 'desc' }
   });
 
-  // Map real data to UI format
-  const auditLots = realLots
-    .filter((l: any) => l.status === 'DOCS_AUDIT')
-    .map((l: any) => ({
-      id: l.id,
-      address: l.address,
-      ownerName: l.owner?.fullName || 'Не указан',
-      expectedPrice: Number(l.expectedPrice || 0).toLocaleString("ru-RU"),
-      winningBid: Number(l.bids.find((b: any) => b.investorId === l.winnerId)?.amount || 0).toLocaleString("ru-RU"),
-      investorName: l.winner?.fullName || 'Не указан',
-      documents: l.media.map((m: any) => ({
-        id: m.id,
-        type: m.type || 'OTHER',
-        label: DOC_LABELS[m.type || ''] || m.type || 'Документ'
-      })),
-    }));
+  const auditLots = auditLotsRaw.map(l => ({
+    id: l.id,
+    address: l.address,
+    ownerName: l.owner?.fullName || 'Не указан',
+    expectedPrice: Number(l.expectedPrice || 0).toLocaleString("ru-RU"),
+    winningBid: Number(l.bids.find(b => b.investorId === l.winnerId)?.amount || 0).toLocaleString("ru-RU"),
+    investorName: l.winner?.fullName || 'Не указан',
+    documents: l.media.map(m => ({
+      id: m.id,
+      type: m.type || 'OTHER',
+      label: DOC_LABELS[m.type || ''] || m.type || 'Документ'
+    })),
+  }));
 
-  const handoffLots = realLots
-    .filter((l: any) => l.status === 'MANAGER_HANDOFF')
-    .map((l: any) => ({
-      id: l.id,
-      address: l.address,
-      ownerName: l.owner?.fullName || 'Не указан',
-      investorName: l.winner?.fullName || 'Не указан',
-      investorDecision: 'approved', // If it reached handoff, investor approved
-    }));
+  const handoffLotsRaw = await prisma.lot.findMany({
+    where: { status: 'MANAGER_HANDOFF' },
+    take: 100,
+    select: {
+      id: true,
+      address: true,
+      owner: { select: { fullName: true } },
+      winner: { select: { fullName: true } },
+    },
+    orderBy: { createdAt: 'desc' }
+  });
 
-  const completedLots = realLots
-    .filter((l: any) => l.status === 'SOLD' || l.status === 'CANCELED')
-    .map((l: any) => ({
+  const handoffLots = handoffLotsRaw.map(l => ({
+    id: l.id,
+    address: l.address,
+    ownerName: l.owner?.fullName || 'Не указан',
+    investorName: l.winner?.fullName || 'Не указан',
+    investorDecision: 'approved', // If it reached handoff, investor approved
+  }));
+
+  const completedLotsRaw = await prisma.lot.findMany({
+    where: { status: { in: ['SOLD', 'CANCELED'] } },
+    take: 100,
+    select: {
+      id: true,
+      address: true,
+      status: true,
+      createdAt: true,
+      winnerId: true,
+      owner: { select: { fullName: true } },
+      winner: { select: { fullName: true } },
+      bids: { select: { amount: true, investorId: true } },
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const completedLots = completedLotsRaw.map(l => {
+    const rawWinningBid = Number(l.bids.find(b => b.investorId === l.winnerId)?.amount || 0);
+    return {
       id: l.id,
       address: l.address,
       ownerName: l.owner?.fullName || 'Не указан',
       investorName: l.winner?.fullName || 'Не указан',
-      winningBid: Number(l.bids.find((b: any) => b.investorId === l.winnerId)?.amount || 0).toLocaleString("ru-RU"),
-      rawWinningBid: Number(l.bids.find((b: any) => b.investorId === l.winnerId)?.amount || 0),
+      winningBid: rawWinningBid.toLocaleString("ru-RU"),
+      rawWinningBid,
       status: l.status as "SOLD" | "CANCELED",
       completedAt: l.createdAt.toLocaleDateString("ru-RU"),
-    }));
+    };
+  });
 
   // Analytics
-  const soldCount = completedLots.filter((l: any) => l.status === "SOLD").length;
-  const canceledCount = completedLots.filter((l: any) => l.status === "CANCELED").length;
+  const soldCount = completedLots.filter(l => l.status === "SOLD").length;
+  const canceledCount = completedLots.filter(l => l.status === "CANCELED").length;
   const totalSoldAmount = completedLots
-    .filter((l: any) => l.status === "SOLD")
-    .reduce((sum, l: any) => sum + (l.rawWinningBid || 0), 0);
+    .filter(l => l.status === "SOLD")
+    .reduce((sum, l) => sum + (l.rawWinningBid || 0), 0);
 
   return (
     <div className="space-y-8">
@@ -89,7 +115,7 @@ export default async function AdminLotsPage() {
         </Badge>
       </div>
 
-      {auditLots.map((lot: any) => (
+      {auditLots.map((lot) => (
         <Card key={lot.id} className="bg-black border-white/10 relative overflow-hidden">
 
           <CardHeader className="pb-4">
@@ -112,7 +138,7 @@ export default async function AdminLotsPage() {
             <div>
               <h4 className="text-sm font-medium text-white/70 mb-3">Загруженные документы:</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {lot.documents.map((doc: any) => (
+                {lot.documents.map((doc) => (
                   <div
                     key={doc.id}
                     className="group flex flex-col items-center gap-2 p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
@@ -145,13 +171,8 @@ export default async function AdminLotsPage() {
           </Badge>
         </div>
 
-        {handoffLots.map((lot: any) => (
+        {handoffLots.map((lot) => (
           <Card key={lot.id} className="bg-black border-white/10 mb-4 relative overflow-hidden">
-            {lot.isReal && (
-              <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg z-10">
-                REAL DB
-              </div>
-            )}
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -231,13 +252,8 @@ export default async function AdminLotsPage() {
         </div>
 
         {/* Completed Lots List */}
-        {completedLots.map((lot: any) => (
+        {completedLots.map((lot) => (
           <Card key={lot.id} className="bg-black border-white/10 mb-4 relative overflow-hidden">
-            {lot.isReal && (
-              <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg z-10">
-                REAL DB
-              </div>
-            )}
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
                 <div>

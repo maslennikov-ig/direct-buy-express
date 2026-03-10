@@ -6,14 +6,20 @@ import { VerifyButton } from "./verify-button";
 import { prisma } from "@/lib/db";
 
 export default async function AdminInvestorsPage() {
-  // Fetch investors from DB, split by verified status
-  const allInvestors = await prisma.investorProfile.findMany({
+  // Fetch investors from DB, explicitly filtering by verification status
+  const unverified = await prisma.investorProfile.findMany({
+    where: { isVerified: false },
     include: { user: true },
     orderBy: { createdAt: 'desc' },
+    take: 100, // Safe fetch limit
   });
 
-  const unverified = allInvestors.filter(p => !p.isVerified);
-  const verified = allInvestors.filter(p => p.isVerified);
+  const verified = await prisma.investorProfile.findMany({
+    where: { isVerified: true },
+    include: { user: true },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
 
   const formatBudget = (min: any, max: any) => {
     const fmt = (n: any) => n ? Number(n).toLocaleString('ru-RU') : '?';
