@@ -10,7 +10,8 @@
     "clean": "next clean",
     "test": "vitest run",
     "test:e2e": "dotenv -e .env.test vitest run --config vitest.e2e.config.ts",
-    "bot": "dotenv -e .env npx tsx bot/start.ts"
+    "bot": "dotenv -e .env npx tsx bot/start.ts",
+    "seed": "dotenv -e .env npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
