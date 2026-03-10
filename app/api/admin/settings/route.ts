@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAllSettings, updateSettings, SettingKeys } from '@/lib/settings';
+import { isAuthenticated } from '@/lib/admin-auth';
 
 export async function GET() {
+    if (!await isAuthenticated()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         const settings = await getAllSettings();
         return NextResponse.json(settings);
@@ -46,6 +50,9 @@ const VALIDATORS: Record<string, (v: string) => string | null> = {
 };
 
 export async function PUT(request: Request) {
+    if (!await isAuthenticated()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         const body: Record<string, string> = await request.json();
 
