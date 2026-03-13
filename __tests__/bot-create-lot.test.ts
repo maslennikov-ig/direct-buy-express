@@ -338,4 +338,51 @@ describe('createLotConversation', () => {
         expect(urls).toContain('doc_photo_1');
         expect(urls).toContain('doc_photo_2');
     });
+
+    it('should re-ask Да/Нет questions on invalid input and accept valid answer', async () => {
+        const mockCtx = {
+            from: { id: 12345, first_name: 'Owner Name' },
+            reply: vi.fn(),
+        } as any;
+
+        const mockAnswers = [
+            { message: { text: 'Тверская 1' } },    // Address
+            { message: { text: '45.5' } },           // Area
+            { message: { text: '5' } },              // Floor
+            { message: { text: '2' } },              // Rooms
+            { message: { text: 'может быть' } },     // INVALID for Debts → should retry
+            { message: { text: 'нет' } },            // Valid: Нет → hasDebts = false
+            { message: { text: 'Да' } },             // Mortgage: yes
+            { message: { text: 'не знаю' } },        // INVALID for Registered → should retry
+            { message: { text: 'Нет' } },            // Valid: Нет → hasRegistered = false
+            ...makePhotoMessages(7),
+            { message: { text: 'Готово' } },
+            { message: { text: '15000000' } },
+            { message: { text: 'Срочный переезд' } }
+        ];
+
+        let waitIndex = 0;
+        const mockConversation = {
+            wait: vi.fn().mockImplementation(() => Promise.resolve(mockAnswers[waitIndex++])),
+            external: vi.fn().mockImplementation(async (cb) => await cb())
+        } as any;
+
+        await createLotConversation(mockConversation, mockCtx);
+
+        // Should have re-asked at least once
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('Пожалуйста, ответьте'));
+        // The lot should still be created successfully
+        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('ЧЕРНОВИК'));
+
+        const { prisma } = await import('../lib/db');
+        expect(prisma.lot.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    hasDebts: false,
+                    hasMortgage: true,
+                    hasRegistered: false,
+                })
+            })
+        );
+    });
 });

@@ -70,18 +70,37 @@ export async function createLotConversation(
 
     // LEGAL - DEBTS
     await ctx.reply("Есть ли долги по ЖКУ или капремонту? (Да/Нет)");
-    const debtsMsg = await conversation.wait();
-    const hasDebts = debtsMsg.message?.text?.toLowerCase().includes("да") || false;
+    let hasDebts: boolean | null = null;
+    while (hasDebts === null) {
+        const msg = await conversation.wait();
+        const text = msg.message?.text?.trim().toLowerCase() ?? '';
+        if (text === 'да' || text === 'yes') { hasDebts = true; }
+        else if (text === 'нет' || text === 'no') { hasDebts = false; }
+        else { await ctx.reply("Пожалуйста, ответьте «Да» или «Нет»."); }
+    }
 
     // LEGAL - MORTGAGE
     await ctx.reply("Квартира в ипотеке/под обременением? (Да/Нет)");
-    const mortgageMsg = await conversation.wait();
-    const hasMortgage = mortgageMsg.message?.text?.toLowerCase().includes("да") || false;
+    let hasMortgage: boolean | null = null;
+    while (hasMortgage === null) {
+        const msg = await conversation.wait();
+        const text = msg.message?.text?.trim().toLowerCase() ?? '';
+        if (text === 'да' || text === 'yes') { hasMortgage = true; }
+        else if (text === 'нет' || text === 'no') { hasMortgage = false; }
+        else { await ctx.reply("Пожалуйста, ответьте «Да» или «Нет»."); }
+    }
 
     // LEGAL - REGISTERED
     await ctx.reply("Остались ли прописанные люди? (Да/Нет)");
-    const regMsg = await conversation.wait();
-    const hasRegistered = regMsg.message?.text?.toLowerCase().includes("да") || false;
+    let hasRegistered: boolean | null = null;
+    while (hasRegistered === null) {
+        const msg = await conversation.wait();
+        const text = msg.message?.text?.trim().toLowerCase() ?? '';
+        if (text === 'да' || text === 'yes') { hasRegistered = true; }
+        else if (text === 'нет' || text === 'no') { hasRegistered = false; }
+        else { await ctx.reply("Пожалуйста, ответьте «Да» или «Нет»."); }
+    }
+
 
     // PHOTOS (ТЗ §3 п.3: 7-10 обязательных фото)
     await ctx.reply(
