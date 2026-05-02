@@ -38,7 +38,9 @@ sudo -u postgres psql -d directbuy
 ssh symancy-prod
 cd /var/www/directbuy/current
 git pull --rebase
-pnpm install
-npx prisma migrate deploy
+corepack enable
+corepack prepare pnpm@10.7.0 --activate
+pnpm install --frozen-lockfile
+pnpm exec prisma migrate deploy
 # restart services (systemd)
 ```

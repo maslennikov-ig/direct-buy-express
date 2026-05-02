@@ -16,7 +16,7 @@ Stable navigation map for this repository. Keep history and current task state i
 - `.codex/orchestrator.toml` - machine-readable orchestration contract.
 - `.codex/handoff.md` - current operational state only.
 - `.codex/manual-agent-prompt-template.md` - skeleton for manually launched child agents.
-- `package.json` - npm scripts and dependency versions.
+- `package.json` - pnpm scripts, package-manager pin, Node engine, and dependency versions.
 - `app/page.tsx` - public app page.
 - `app/admin/page.tsx` - admin dashboard.
 - `app/api/**/route.ts` - Next.js route handlers.
@@ -61,10 +61,10 @@ Stable navigation map for this repository. Keep history and current task state i
 ## Verification
 
 - Process-only contract: `scripts/orchestration/run_process_verification.sh`.
-- Standard code-change gate: `npm run lint`.
-- Standard unit test gate: `npm run test`.
-- Standard build gate: `npm run build`.
-- Risk-triggered E2E/smoke gate: `npm run test:e2e`.
+- Standard code-change gate: `pnpm lint`.
+- Standard unit test gate: `pnpm test`.
+- Standard build gate: `pnpm build`.
+- Risk-triggered E2E/smoke gate: `pnpm test:e2e`.
 - Prisma schema changes should include client generation/migration validation appropriate to the change.
 - Bot conversation changes should run the focused Vitest files that cover the touched flow before the full unit gate.
 - Deployment changes should include smoke evidence or a tracked blocker when external infrastructure is required.
