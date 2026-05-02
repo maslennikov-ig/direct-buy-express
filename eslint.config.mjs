@@ -8,7 +8,11 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig([
     {
-        ignores: ["**/coverage/"],
+        ignores: [
+            "**/.next/**",
+            "**/.worktrees/**",
+            "**/coverage/**",
+        ],
     },
     {
         extends: [...next],

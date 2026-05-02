@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { bot } from '@/bot/index';
 import { isAuthenticated } from '@/lib/admin-auth';
 import { logger } from '@/lib/logger';
 
@@ -57,6 +56,7 @@ export async function POST(
         // Notify Owner
         if (lot.owner?.telegramId) {
             try {
+                const { bot } = await import('@/bot/index');
                 await bot.api.sendMessage(
                     Number(lot.owner.telegramId),
                     `🎉 Сделка по лоту "${lot.address}" успешно завершена! Спасибо за использование Direct Buy.`
@@ -69,6 +69,7 @@ export async function POST(
         // Notify Investor
         if (lot.winner?.telegramId) {
             try {
+                const { bot } = await import('@/bot/index');
                 await bot.api.sendMessage(
                     Number(lot.winner.telegramId),
                     `🎉 Сделка по лоту "${lot.address}" успешно завершена! Спасибо за использование Direct Buy.`

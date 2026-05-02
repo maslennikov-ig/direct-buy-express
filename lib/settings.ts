@@ -31,10 +31,19 @@ declare const globalThis: {
     redisSubscriberGlobal: ReturnType<typeof redisSubscriberSingleton>;
 } & typeof global;
 
-const subscriber = globalThis.redisSubscriberGlobal ?? redisSubscriberSingleton();
+let subscriber = globalThis.redisSubscriberGlobal ?? null;
 
-if (process.env.NODE_ENV !== 'production' && subscriber) {
-    globalThis.redisSubscriberGlobal = subscriber;
+function ensureRedisSubscriber() {
+    if (subscriber) {
+        return subscriber;
+    }
+
+    subscriber = redisSubscriberSingleton();
+    if (process.env.NODE_ENV !== 'production' && subscriber) {
+        globalThis.redisSubscriberGlobal = subscriber;
+    }
+
+    return subscriber;
 }
 
 async function publishInvalidation(keys: string[]): Promise<void> {
@@ -54,6 +63,8 @@ export async function getSetting(key: string): Promise<string | null> {
         // In test env, fall back to process.env to support tests that mutate env vars directly.
         return process.env[key] ?? null;
     }
+
+    ensureRedisSubscriber();
 
     const cached = cache.get(key);
     if (cached && cached.expiresAt > Date.now()) {
@@ -82,6 +93,8 @@ export async function getNumericSetting(key: string, fallback: number): Promise<
  * Set a setting value (upsert). Invalidates cache immediately.
  */
 export async function setSetting(key: string, value: string): Promise<void> {
+    ensureRedisSubscriber();
+
     await prisma.setting.upsert({
         where: { key },
         update: { value },
@@ -95,6 +108,8 @@ export async function setSetting(key: string, value: string): Promise<void> {
  * Get all settings as a key-value object.
  */
 export async function getAllSettings(): Promise<Record<string, string>> {
+    ensureRedisSubscriber();
+
     const rows = await prisma.setting.findMany();
     const result: Record<string, string> = {};
     for (const row of rows) {
@@ -108,6 +123,8 @@ export async function getAllSettings(): Promise<Record<string, string>> {
  * Bulk update settings. Invalidates cache for all updated keys.
  */
 export async function updateSettings(entries: Record<string, string>): Promise<void> {
+    ensureRedisSubscriber();
+
     await prisma.$transaction(
         Object.entries(entries).map(([key, value]) =>
             prisma.setting.upsert({

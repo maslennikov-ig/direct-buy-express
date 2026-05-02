@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { bot } from '@/bot/index';
 import { isAuthenticated } from '@/lib/admin-auth';
 import { logger } from '@/lib/logger';
 
@@ -65,6 +64,7 @@ export async function POST(
         // Notify owner: docs approved by manager, forwarded to investor
         if (lot.owner?.telegramId) {
             try {
+                const { bot } = await import('@/bot/index');
                 await bot.api.sendMessage(
                     Number(lot.owner.telegramId),
                     '✅ Менеджер одобрил ваши документы. Они отправлены инвестору на рассмотрение.'
@@ -77,6 +77,7 @@ export async function POST(
         // Forward documents to winning investor with decision buttons
         if (lot.winner?.telegramId) {
             try {
+                const { bot } = await import('@/bot/index');
                 const investorTgId = Number(lot.winner.telegramId);
 
                 // Send summary message with document list

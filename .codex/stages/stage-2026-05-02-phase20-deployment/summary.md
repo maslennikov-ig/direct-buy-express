@@ -8,11 +8,22 @@ Close Phase 20 production deployment readiness by fixing the blocking local qual
 
 ## Current Streams
 
-- `Direct Buy-1z7.1`: toolchain baseline. Returned and closed in Beads; review artifact and completion event.
-- `Direct Buy-1z7.2`: ESLint warning cleanup. Can run in parallel with `Direct Buy-1z7.1` and `Direct Buy-1z7.3`.
-- `Direct Buy-1z7.3`: production deployment runbook/checklist. Can run in parallel with `Direct Buy-1z7.1` and `Direct Buy-1z7.2`.
-- `Direct Buy-1z7.4`: unit test gate repair. Can start after `Direct Buy-1z7.1` is accepted.
-- `Direct Buy-1z7.5`: smoke/E2E deployment gate. Must wait for `Direct Buy-1z7.1`, `Direct Buy-1z7.3`, and `Direct Buy-1z7.4`.
+- `Direct Buy-1z7.1`: toolchain baseline. Accepted, integrated, and closed.
+- `Direct Buy-1z7.2`: ESLint warning cleanup. Accepted, integrated, and closed; orchestrator expanded ignores for `.next` and `.worktrees`.
+- `Direct Buy-1z7.3`: production deployment runbook/checklist. Accepted, integrated, and closed.
+- `Direct Buy-1z7.4`: unit test gate. Completed locally by orchestrator on the integrated tree and closed.
+- `Direct Buy-1z7.6`: external production infrastructure values. Open; must be completed before smoke/E2E.
+- `Direct Buy-1z7.5`: smoke/E2E deployment gate. Must wait for `Direct Buy-1z7.6`.
+
+## Verification Evidence
+
+- `pnpm lint` passed under Node `22.18.0`.
+- `pnpm test` passed 25 files / 95 tests under Node `22.18.0`.
+- `pnpm build` passed under Node `22.18.0`.
+- `docker compose config` passed with placeholder env.
+- `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` passed through Compose.
+- `docker build --build-arg NEXT_PUBLIC_BOT_USERNAME=directbuy_bot -t directbuy-deploy-check:orchestrator .` passed after retrying a transient Docker snapshot export failure.
+- `scripts/orchestration/run_process_verification.sh` passed.
 
 ## Coordination Rules
 
@@ -23,5 +34,5 @@ Close Phase 20 production deployment readiness by fixing the blocking local qual
 
 ## Explicit Defers
 
-- `Direct Buy-1z7.2`: ESLint 9 `.eslintignore` warning remains.
-- `Direct Buy-1z7.5`: build/smoke remains blocked until `DATABASE_URL` and reachable PostgreSQL are available during Next.js admin-page prerender, or a separate app task changes that prerender behavior.
+- `Direct Buy-1z7.6`: DNS, VPS, production `.env`, Caddy certificate path, backups, and alert owner are external/manual.
+- `Direct Buy-1z7.5`: waits for `Direct Buy-1z7.6`; do not launch until production or smoke-equivalent infrastructure is available.

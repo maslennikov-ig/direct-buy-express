@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { bot } from '@/bot/index';
 import { isAuthenticated } from '@/lib/admin-auth';
 import { logger } from '@/lib/logger';
 
@@ -46,6 +45,7 @@ export async function POST(
         // Notify owner
         if (lot.owner?.telegramId) {
             try {
+                const { bot } = await import('@/bot/index');
                 await bot.api.sendMessage(
                     Number(lot.owner.telegramId),
                     '❌ Документы отклонены. С вами свяжется менеджер для уточнения деталей.'
@@ -58,6 +58,7 @@ export async function POST(
         // Notify investor
         if (lot.winner?.telegramId) {
             try {
+                const { bot } = await import('@/bot/index');
                 await bot.api.sendMessage(
                     Number(lot.winner.telegramId),
                     '⚠️ Документы по лоту отклонены менеджером. Ожидайте повторную загрузку от собственника.'

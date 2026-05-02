@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { bot } from '@/bot/index';
 import { isAuthenticated } from '@/lib/admin-auth';
 import { logger } from '@/lib/logger';
 
@@ -71,6 +70,7 @@ export async function POST(
             // Notify Owner
             if (lot.owner?.telegramId) {
                 try {
+                    const { bot } = await import('@/bot/index');
                     await bot.api.sendMessage(
                         Number(lot.owner.telegramId),
                         `🔄 Лот "${lot.address}" возвращён на повторный аукцион. Новый сбор предложений открыт на 12 часов.`
@@ -83,6 +83,7 @@ export async function POST(
             // Notify Investor
             if (lot.winner?.telegramId) {
                 try {
+                    const { bot } = await import('@/bot/index');
                     await bot.api.sendMessage(
                         Number(lot.winner.telegramId),
                         `🔄 Сделка по лоту "${lot.address}" отменена. Лот возвращён на аукцион.`
@@ -117,6 +118,7 @@ export async function POST(
             // Notify Owner
             if (lot.owner?.telegramId) {
                 try {
+                    const { bot } = await import('@/bot/index');
                     await bot.api.sendMessage(
                         Number(lot.owner.telegramId),
                         `❌ Сделка по лоту "${lot.address}" отменена. Если у вас есть вопросы, свяжитесь с менеджером.`
@@ -129,6 +131,7 @@ export async function POST(
             // Notify Investor
             if (lot.winner?.telegramId) {
                 try {
+                    const { bot } = await import('@/bot/index');
                     await bot.api.sendMessage(
                         Number(lot.winner.telegramId),
                         `❌ Сделка по лоту "${lot.address}" отменена. Если у вас есть вопросы, свяжитесь с менеджером.`

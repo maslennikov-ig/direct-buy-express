@@ -1,7 +1,7 @@
 # Manual Agent Prompts - Phase 20 Deployment
 
 Base branch: `master`
-Base commit: `a35eed30c033`
+Base commit: use current pushed `master` after the orchestrator integration closeout.
 Stage ID: `stage-2026-05-02-phase20-deployment`
 Workspace root: `/home/me/code/Direct Buy`
 
@@ -9,14 +9,17 @@ Use these prompts in separate manual agent sessions. Create a dedicated worktree
 
 ## Parallelization
 
-Can start now in parallel:
+Completed and accepted:
 - `Direct Buy-1z7.1` - toolchain baseline.
 - `Direct Buy-1z7.2` - ESLint warning cleanup.
 - `Direct Buy-1z7.3` - deployment runbook/checklist.
+- `Direct Buy-1z7.4` - unit test gate.
+
+Can start now:
+- `Direct Buy-1z7.6` - external production infrastructure values and readiness evidence.
 
 Must wait:
-- `Direct Buy-1z7.4` waits for `Direct Buy-1z7.1`.
-- `Direct Buy-1z7.5` waits for `Direct Buy-1z7.1`, `Direct Buy-1z7.3`, and `Direct Buy-1z7.4`.
+- `Direct Buy-1z7.5` waits for `Direct Buy-1z7.6`.
 
 ## Prompt: Direct Buy-1z7.1
 
@@ -292,4 +295,61 @@ Run:
 
 ## Final Chat Reply
 `TASK Direct Buy-1z7.5 | STATUS <returned|blocked> | EVENT <recorded|failed> | ARTIFACT /home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.5.md`
+```
+
+## Prompt: Direct Buy-1z7.6
+
+```md
+Provision production infrastructure values for deployment smoke
+
+Task ID: Direct Buy-1z7.6
+Stage ID: stage-2026-05-02-phase20-deployment
+
+## Role
+Act as an infrastructure readiness auditor for the Direct Buy production deployment. You may collect evidence and prepare exact operator steps, but do not expose or commit secret values.
+
+## Goal
+Confirm the external/manual prerequisites that are outside the repository and unblock `Direct Buy-1z7.5`: DNS, VPS/Compose host, firewall, production `.env`, BotFather token ownership, manager Telegram IDs, optional DaData key, backup destination, and alert owner.
+
+## Success Criteria
+- DNS A/AAAA for `DOMAIN` points to the production VPS or the missing record is documented.
+- VPS has Docker and Docker Compose available, and ports 80/443 are open.
+- Production `.env` exists on the VPS with mode `600`; values are verified by name/presence only, not copied into repo artifacts.
+- Caddy can reach the domain path needed to issue HTTPS certificates, or the blocker is explicit.
+- PostgreSQL/upload backup destination and monitoring/alert owner are named.
+- `Direct Buy-1z7.5` has a concrete target and credentials path for smoke/E2E without exposing secrets.
+
+## Available Context And Tools
+- Workspace root: `/home/me/code/Direct Buy`
+- Contract files: `AGENTS.md`, `.codex/orchestrator.toml`, `.codex/handoff.md`
+- Artifact path: `/home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`
+- Relevant files: `.env.example`, `docker-compose.yml`, `Caddyfile`, `docs/DEPLOYMENT.md`
+- Use Context7 or first-party docs for version-sensitive Docker Compose/Caddy behavior only if you need to validate command semantics.
+
+## Boundaries
+- Base branch: current pushed `master`.
+- This is primarily external/manual readiness work; do not edit repo files unless the evidence exposes a real docs/config mismatch.
+- Do not print, store, or commit real secrets.
+- Do not run destructive VPS, DNS, database, or volume commands.
+
+## Verification
+- Run repo-local checks only if you change files.
+- Record non-secret command evidence such as `docker --version`, `docker compose version`, DNS lookup output, and sanitized `.env` key presence.
+- If you can access the VPS, verify Compose can render with production env using `docker compose config` without showing secret values.
+
+## Stop / Ask Rules
+Stop and return `blocked` if VPS/DNS/secrets access is unavailable, if production ownership is unknown, or if running a command could mutate production state.
+
+## Output Contract
+- Write the artifact using `.codex/stage-artifact-template.md`.
+- Include a pass/block table for each prerequisite.
+- Include the exact remaining operator actions, if any.
+- Do not leave new `TODO/FIXME/HACK/XXX` markers.
+
+## Completion Event
+Run:
+`python3 scripts/orchestration/report_child_completion.py --task "Direct Buy-1z7.6" --stage stage-2026-05-02-phase20-deployment --artifact "/home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md" --status <returned|blocked> --commit <commit_hash_or_n/a> --verify <passed|failed|blocked> --clean <yes|no>`
+
+## Final Chat Reply
+`TASK Direct Buy-1z7.6 | STATUS <returned|blocked> | EVENT <recorded|failed> | ARTIFACT /home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`
 ```
