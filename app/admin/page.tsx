@@ -3,8 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertCircle, Activity, CheckCircle2, Users, FileText } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { connection } from "next/server";
 
 export default async function AdminDashboard() {
+  await connection();
+
   // Real DB queries
   const [activeAuctions, docsAuditCount, pendingInvestorsCount, waitingDocsLots] = await Promise.all([
     prisma.lot.count({ where: { status: 'AUCTION' } }),

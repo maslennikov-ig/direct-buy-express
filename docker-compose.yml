@@ -1,3 +1,8 @@
+x-app-build: &app-build
+  context: .
+  args:
+    NEXT_PUBLIC_BOT_USERNAME: ${NEXT_PUBLIC_BOT_USERNAME:?Set NEXT_PUBLIC_BOT_USERNAME}
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -27,17 +32,30 @@ services:
       retries: 5
 
   admin-panel:
-    build: .
+    build: *app-build
     restart: unless-stopped
-    command: [ "sh", "-c", "npx prisma migrate deploy && pnpm start" ]
+    command: [ "sh", "-c", "pnpm exec prisma migrate deploy && pnpm exec tsx prisma/seed-settings.ts && node .next/standalone/server.js" ]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-directbuy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-directbuy}
       REDIS_URL: redis://redis:6379
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
       ADMIN_SESSION_TOKEN: ${ADMIN_SESSION_TOKEN:?Set ADMIN_SESSION_TOKEN}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:?Set ADMIN_API_KEY}
+      NEXT_PUBLIC_BOT_USERNAME: ${NEXT_PUBLIC_BOT_USERNAME:?Set NEXT_PUBLIC_BOT_USERNAME}
+      MANAGER_CHAT_ID: ${MANAGER_CHAT_ID:?Set MANAGER_CHAT_ID}
+      PLATFORM_FEE_RUB: ${PLATFORM_FEE_RUB:-100000}
+      SLA_DOCS_UPLOAD_HOURS: ${SLA_DOCS_UPLOAD_HOURS:-2}
+      SLA_INVESTOR_REVIEW_HOURS: ${SLA_INVESTOR_REVIEW_HOURS:-24}
+      SLA_OFFER_RESPONSE_HOURS: ${SLA_OFFER_RESPONSE_HOURS:-2}
+      BOT_ACTIVE: ${BOT_ACTIVE:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
     ports:
       - "3000:3000"
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,16 +63,18 @@ services:
         condition: service_healthy
 
   bot:
-    build: .
+    build: *app-build
     restart: unless-stopped
-    command: [ "npx", "tsx", "bot/start.ts" ]
+    command: [ "pnpm", "exec", "tsx", "bot/start.ts" ]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-directbuy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-directbuy}
       REDIS_URL: redis://redis:6379
       BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
-      MANAGER_CHAT_ID: ${MANAGER_CHAT_ID}
-      PLATFORM_FEE_RUB: ${PLATFORM_FEE_RUB:-100000}
+      DADATA_API_KEY: ${DADATA_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       NODE_ENV: production
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,14 +82,14 @@ services:
         condition: service_healthy
 
   worker:
-    build: .
+    build: *app-build
     restart: unless-stopped
-    command: [ "npx", "tsx", "lib/queue/worker.ts" ]
+    command: [ "pnpm", "exec", "tsx", "lib/queue/worker.ts" ]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-directbuy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-directbuy}
       REDIS_URL: redis://redis:6379
       BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
-      MANAGER_CHAT_ID: ${MANAGER_CHAT_ID}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       NODE_ENV: production
     depends_on:
       postgres:
@@ -80,6 +100,8 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN}
     ports:
       - "80:80"
       - "443:443"
@@ -94,5 +116,6 @@ services:
 volumes:
   pgdata:
   redisdata:
+  uploads:
   caddy_data:
   caddy_config:

@@ -4,8 +4,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CheckCircle2, Clock, Users } from "lucide-react";
 import { VerifyButton } from "./verify-button";
 import { prisma } from "@/lib/db";
+import { connection } from "next/server";
 
 export default async function AdminInvestorsPage() {
+  await connection();
+
   // Fetch investors from DB, explicitly filtering by verification status
   const unverified = await prisma.investorProfile.findMany({
     where: { isVerified: false },
