@@ -1,40 +1,57 @@
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+## Project Shape
 
-## Quick Reference
+Direct Buy is a single TypeScript/Node repository:
+- Next.js 16 App Router admin/web app in `app/`.
+- grammY Telegram bot in `bot/`.
+- Shared services, auth, queue, settings, and integrations in `lib/`.
+- Prisma/PostgreSQL schema and seeds in `prisma/`.
+- Vitest tests in `__tests__/`; deployment uses Docker, Caddy, Redis, and BullMQ.
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
-```
+## Issue Tracking
 
-## Landing the Plane (Session Completion)
+Use Beads (`bd`) as the only task ledger. Do not create `tasks.json`.
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+Quick commands:
+- `bd onboard` - show local workflow help.
+- `bd ready` - find unblocked work.
+- `bd show <id>` - inspect an issue.
+- `bd update <id> --status in_progress` - claim work.
+- `bd close <id>` - close finished work.
+- `bd export -o .beads/issues.jsonl` - refresh the tracked Beads snapshot when needed.
 
-**MANDATORY WORKFLOW:**
+## Verification
 
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+Canonical process check:
+- `scripts/orchestration/run_process_verification.sh`
 
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+Canonical code-change checks:
+- `npm run lint`
+- `npm run test`
+- `npm run build`
 
+Risk-triggered E2E/smoke:
+- `npm run test:e2e`
+
+The local runtime must satisfy the installed Next.js, Vite, and Vitest Node engine requirements. If runtime/tooling blocks verification, record the blocker explicitly in Beads and the stage artifact.
+
+## Orchestration
+
+The repo follows the `balanced-v2.7` orchestration baseline. Stable navigation lives in `.codex/project-index.md`; current operational state lives in `.codex/handoff.md`; detailed stage work belongs under `.codex/stages/`.
+
+Simple orchestration work stays local by default: handoff updates, Beads maintenance, stage planning, analysis-only summaries, and prompt drafting should not be delegated unless complexity, isolation, or parallelism clearly justifies it.
+
+When delegation is warranted, prefer one cohesive stream per outcome. Do not split analysis, implementation, tests, and docs into separate child tasks without a real boundary or parallelism win.
+
+Delegated agents must fetch current Context7 documentation for relevant version-sensitive dependencies before implementation, and must state when no such dependency applies.
+
+Child prompts must be outcome-first and boundary-driven: define role, goal, success criteria, context/tools, boundaries, verification, output contract, stop rules, and completion event. Use `.codex/manual-agent-prompt-template.md` for manual launches.
+
+## Safety And Closeout
+
+Do not revert unrelated local changes. Do not expose secrets, edit `.env` values into tracked files, or run destructive git commands unless explicitly requested.
+
+Never create silent technical debt. New `TODO/FIXME/HACK/XXX` markers must be fixed before handoff or explicitly tracked as bounded defers in Beads and the stage artifact.
+
+When ending code-changing work, run the applicable gates, update Beads, refresh `.beads/issues.jsonl` if this repo tracks it, commit intentionally, pull with rebase, and push. Work is not landed until the push succeeds unless the user explicitly asks for a no-commit/no-push handoff.

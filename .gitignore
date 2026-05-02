@@ -9,3 +9,10 @@ coverage/
 
 /generated/prisma
 /uploads/
+
+!.codex/
+!.codex/project-index.md
+!.codex/stage-artifact-template.md
+!.codex/manual-agent-prompt-template.md
+!.codex/stages/
+!.codex/stages/**

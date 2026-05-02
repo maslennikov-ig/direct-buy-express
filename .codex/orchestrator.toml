@@ -1,0 +1,92 @@
+role = "orchestrator-stage"
+handoff_file = ".codex/handoff.md"
+project_index_file = ".codex/project-index.md"
+artifact_template = ".codex/stage-artifact-template.md"
+manual_prompt_template = ".codex/manual-agent-prompt-template.md"
+
+[baseline]
+profile = "balanced-v2.7"
+source_skill = "orchestration-setup"
+
+[workspace]
+topology = "single-repo"
+multi_repo = false
+launch_mode = "manual_user_launch"
+
+[delivery]
+mode = "direct"
+primary_branch = "master"
+protected_branches = ["master"]
+push_required = true
+pr_required = false
+
+[verification]
+process_only_commands = ["scripts/orchestration/run_process_verification.sh"]
+code_change_commands = ["npm run lint", "npm run test", "npm run build"]
+stage_close_commands = ["scripts/orchestration/run_process_verification.sh"]
+e2e_commands = ["npm run test:e2e"]
+stage_level_optional_commands = []
+
+[verification_policy]
+e2e_triggers = [
+  "Telegram bot conversation or middleware changes",
+  "Next.js API, auth, or admin user-flow changes",
+  "Prisma schema, queue, worker, or deployment changes",
+  "Phase closeout for production deployment",
+]
+
+[artifacts]
+stage_root = ".codex/stages"
+artifact_template = ".codex/stage-artifact-template.md"
+
+[completion_inbox]
+scope = "git_common_dir"
+events_file = "codex-completion-inbox/events.jsonl"
+review_state_file = "codex-completion-inbox/review-state.json"
+report_entrypoint = "scripts/orchestration/report_child_completion.py"
+review_entrypoint = "scripts/orchestration/review_completion_inbox.py"
+
+[handoff]
+current_state_max_lines = 80
+hard_limit_lines = 120
+
+[project_index]
+max_lines = 150
+required_sections = [
+  "## Runtime Shape",
+  "## Primary Entrypoints",
+  "## Core Subsystems",
+  "## Integrations And Sources Of Truth",
+  "## Verification",
+  "## Conventions And Boundaries",
+]
+
+[agents]
+root_max_lines = 120
+
+[stage_limits]
+max_parallel_children = 3
+max_stage_artifacts = 8
+stage_summary_max_lines = 120
+
+[prompt_cache]
+max_prompt_lines = 140
+prefer_repo_links = true
+
+[debt_scan]
+markers = ["TODO", "FIXME", "HACK", "XXX"]
+allow_only_if_tracked = true
+
+[enforcement]
+process_verification = "scripts/orchestration/run_process_verification.sh"
+stage_ready = "scripts/orchestration/check_stage_ready.py"
+stage_closeout = "scripts/orchestration/run_stage_closeout.py"
+workspace_cleanup = "scripts/orchestration/cleanup_stage_workspace.py"
+
+[closeout]
+two_phase = true
+phase1 = "review_child_artifacts"
+phase2 = "verify_commit_push"
+
+[repo_exceptions]
+package_manager_note = "package.json and package-lock.json exist, but current node_modules is pnpm-style and pnpm-lock.yaml is tracked; Phase 20 toolchain task must settle the canonical package-manager contract."
