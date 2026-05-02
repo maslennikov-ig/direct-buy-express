@@ -1,5 +1,4 @@
 import { prisma } from './db';
-import { connection as pub } from './queue/connection';
 import IORedis from 'ioredis';
 
 // In-memory cache with TTL
@@ -36,6 +35,15 @@ const subscriber = globalThis.redisSubscriberGlobal ?? redisSubscriberSingleton(
 
 if (process.env.NODE_ENV !== 'production' && subscriber) {
     globalThis.redisSubscriberGlobal = subscriber;
+}
+
+async function publishInvalidation(keys: string[]): Promise<void> {
+    if (process.env.NODE_ENV === 'test') {
+        return;
+    }
+
+    const { connection } = await import('./queue/connection');
+    await connection.publish(INVALIDATE_CHANNEL, JSON.stringify(keys));
 }
 
 /**
@@ -80,9 +88,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
         create: { key, value },
     });
     cache.delete(key);
-    if (process.env.NODE_ENV !== 'test') {
-        pub.publish(INVALIDATE_CHANNEL, JSON.stringify([key])).catch(console.error);
-    }
+    publishInvalidation([key]).catch(console.error);
 }
 
 /**
@@ -115,9 +121,7 @@ export async function updateSettings(entries: Record<string, string>): Promise<v
     for (const key of keys) {
         cache.delete(key);
     }
-    if (process.env.NODE_ENV !== 'test') {
-        pub.publish(INVALIDATE_CHANNEL, JSON.stringify(keys)).catch(console.error);
-    }
+    publishInvalidation(keys).catch(console.error);
 }
 
 /** Known setting keys for type safety */

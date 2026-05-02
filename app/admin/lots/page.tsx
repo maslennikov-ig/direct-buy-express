@@ -4,6 +4,7 @@ import { Eye, FileText, CheckCircle2, UserCheck, UserX, Phone, TrendingUp, XCirc
 import { LotAuditActions } from "./lot-audit-actions";
 import { LotHandoffActions } from "./lot-handoff-actions";
 import { prisma } from "@/lib/db";
+import { connection } from "next/server";
 
 const DOC_LABELS: Record<string, string> = {
   EGRN: "Выписка ЕГРН",
@@ -14,6 +15,8 @@ const DOC_LABELS: Record<string, string> = {
 };
 
 export default async function AdminLotsPage() {
+  await connection();
+
   // Fetch specific lots from Prisma with targeted select
   const auditLotsRaw = await prisma.lot.findMany({
     where: { status: 'DOCS_AUDIT' },
