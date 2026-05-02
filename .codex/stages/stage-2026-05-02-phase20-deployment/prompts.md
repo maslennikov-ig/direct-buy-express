@@ -14,12 +14,13 @@ Completed and accepted:
 - `Direct Buy-1z7.2` - ESLint warning cleanup.
 - `Direct Buy-1z7.3` - deployment runbook/checklist.
 - `Direct Buy-1z7.4` - unit test gate.
+- `Direct Buy-1z7.6` - production infrastructure readiness for current PM2/Nginx smoke contract.
 
 Can start now:
-- `Direct Buy-1z7.6` - external production infrastructure values and readiness evidence.
+- `Direct Buy-1z7.5` - smoke/E2E deployment gate.
 
 Must wait:
-- `Direct Buy-1z7.5` waits for `Direct Buy-1z7.6`.
+- No remaining Phase 20 child stream is blocked by Beads dependencies.
 
 ## Prompt: Direct Buy-1z7.1
 
@@ -253,7 +254,13 @@ Stage ID: stage-2026-05-02-phase20-deployment
 Act as a release verification engineer for the production deployment gate.
 
 ## Goal
-After toolchain, deployment runbook, and unit gate return, run the risk-triggered smoke/E2E deployment verification for admin, bot, worker, DB, Redis, media, and queue flows.
+Run the risk-triggered smoke/E2E deployment verification for admin, bot, worker, DB, Redis, media, and queue flows against the current production smoke contract.
+
+Current target:
+- URL: `https://directbuy.aidevteam.ru`
+- Runtime: PM2/Nginx on app host `91.132.59.194`, behind central Caddy on `80.74.28.160`
+- Credential source: `/var/www/directbuy/current/.env` on `root@91.132.59.194`; do not print or commit values.
+- Known first finding: authorized `/api/lots` reaches app auth and returns 500. Treat this as the first application smoke issue to investigate, not an infrastructure blocker.
 
 ## Success Criteria
 - `npm run test:e2e` or the updated canonical E2E command is run when required infrastructure is available.
@@ -265,24 +272,26 @@ After toolchain, deployment runbook, and unit gate return, run the risk-triggere
 - Workspace root: `/home/me/code/Direct Buy`
 - Contract files: `AGENTS.md`, `.codex/orchestrator.toml`, `.codex/handoff.md`
 - Artifact path: `/home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.5.md`
-- Relevant files: `__tests__/e2e/p2p-flow.test.ts`, `vitest.e2e.config.ts`, `.env.example`, `.env.test`, `docker-compose.yml`, `docs/DEPLOYMENT.md`, `lib/queue/worker.ts`, `bot/start.ts`, `app/api/**/route.ts`
+- Relevant files: `.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`, `__tests__/e2e/p2p-flow.test.ts`, `vitest.e2e.config.ts`, `.env.example`, `.env.test`, `docs/DEPLOYMENT.md`, `docs/QA_TESTING_GUIDE.md`, `lib/queue/worker.ts`, `bot/start.ts`, `app/api/**/route.ts`
 - Use Context7 for version-sensitive Next.js, Prisma, grammY, and Vitest behavior involved in failures.
 
 ## Boundaries
-- Base branch: `master`
-- Base commit: `a35eed30c033`
-- Dedicated worktree: create one after prerequisite artifacts are accepted.
+- Base branch: current pushed `master`
+- Base commit: current pushed `master` after `d7c471d`
+- Dedicated worktree: create one before editing.
 - Write zone: deployment verification fixes only.
 - Do not expose real secrets or commit environment values.
+- Do not run a Compose migration or destructive production command; PM2/Nginx is the active smoke contract.
 
 ## Verification
 - Run: canonical lint command.
 - Run: canonical unit test command if the prior artifact says it should remain green.
 - Run: `npm run test:e2e` or updated canonical E2E command.
-- Run any smoke commands defined by the deployment runbook.
+- Run production smoke checks from the deployment/QA docs against `https://directbuy.aidevteam.ru`, using sanitized evidence only.
+- For `/api/lots`, verify unauthorized behavior, authorized behavior using `ADMIN_API_KEY`, and root cause of the current 500 without printing the key.
 
 ## Stop / Ask Rules
-Stop and return `blocked` if external VPS/DNS/secrets are required, if E2E needs a live service the repo cannot start locally, or if failures should be split by subsystem.
+Stop and return `blocked` if needed secrets/access are unavailable, if a smoke action would mutate production data unsafely, if a production fix needs a maintenance window, or if failures should be split by subsystem.
 
 ## Output Contract
 - Write the artifact using `.codex/stage-artifact-template.md`.

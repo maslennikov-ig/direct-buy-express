@@ -8,6 +8,7 @@
 - Beads is the only task truth. Phase 20 deployment epic has child tasks `Direct Buy-1z7.1` through `Direct Buy-1z7.6`.
 - Completion events for `Direct Buy-1z7.1`, `Direct Buy-1z7.2`, and `Direct Buy-1z7.3` were reviewed and accepted by the orchestrator.
 - Completion event `b858da05` for `Direct Buy-1z7.6` was reviewed and accepted as a real blocked return; blockers were later remediated in the same stage.
+- Completion event `db1cb3b4` for `Direct Buy-1z7.6` was reviewed and accepted as the remediation return.
 - `Direct Buy-1z7.1`, `Direct Buy-1z7.2`, `Direct Buy-1z7.3`, and `Direct Buy-1z7.4` are closed in Beads.
 - `Direct Buy-1z7.6` is closed in Beads after resolving external production infrastructure values for the current PM2/Nginx smoke contract.
 - `Direct Buy-1z7.5` is now unblocked and ready to launch.
@@ -27,7 +28,7 @@ Recommended action: launch `Direct Buy-1z7.5` against the PM2/Nginx production t
 
 ## Starter prompt for next orchestrator
 
-Use $orchestrator-stage in `/home/me/code/Direct Buy`. Review `.codex/orchestrator.toml`, `.codex/project-index.md`, `.codex/handoff.md`, Beads, and `.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`. Confirm the completion inbox with `python3 scripts/orchestration/review_completion_inbox.py`, then launch `Direct Buy-1z7.5`.
+Use $orchestrator-stage in `/home/me/code/Direct Buy`. Review `.codex/orchestrator.toml`, `.codex/project-index.md`, `.codex/handoff.md`, Beads, and `.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`. Confirm the completion inbox is empty with `python3 scripts/orchestration/review_completion_inbox.py`, then launch `Direct Buy-1z7.5`.
 
 ## Explicit defers
 
