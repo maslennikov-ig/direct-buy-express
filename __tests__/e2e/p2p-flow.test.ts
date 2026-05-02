@@ -4,6 +4,7 @@ import { bot } from '@/bot';
 import { processJob } from '@/lib/queue/worker';
 import { Job } from 'bullmq';
 import { QueueJobs } from '@/lib/queue/client';
+import { assertIsolatedE2EDatabaseUrl } from '@/scripts/e2e/env';
 
 // Helper to simulate Telegram messages
 async function simulateMessage(telegramId: number, text: string) {
@@ -40,6 +41,8 @@ async function simulateCallback(telegramId: number, data: string) {
 
 // Ensure the bot API doesn't actually hit Telegram during tests
 beforeAll(() => {
+    assertIsolatedE2EDatabaseUrl(process.env.DATABASE_URL);
+
     // Explicitly override API methods to bypass any Node HTTP stream hanging issues
     bot.api.sendMessage = vi.fn().mockResolvedValue({ message_id: 1, date: 1, chat: { id: 1, type: 'private' } });
     bot.api.answerCallbackQuery = vi.fn().mockResolvedValue(true);

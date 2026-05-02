@@ -17,6 +17,19 @@
 
 ---
 
+## Автоматический E2E-gate
+
+Команда `npm run test:e2e` запускает Vitest через `vitest.e2e.config.ts` и не зависит от глобального `dotenv` CLI. Перед импортом e2e-spec config читает `.env.test`, затем optional ignored override `.env.test.local`, и отказывается запускаться, если `DATABASE_URL` отсутствует или не указывает на явно тестовую PostgreSQL БД.
+
+Требования к локальному запуску:
+- `.env.test` должен существовать.
+- Для локальных credential/port override используйте ignored `.env.test.local`, не меняя tracked файлы.
+- Имя БД в `DATABASE_URL` должно содержать `test`, `e2e` или `ci`; production-looking имена вроде `directbuy`/`prod` блокируются до destructive setup.
+- PostgreSQL schema должна быть применена к этой isolated БД, Redis должен быть доступен по `REDIS_URL`.
+- Секретные значения не печатать в логах и не переносить в документацию.
+
+---
+
 ## Часть 1: Telegram-бот
 
 ### 🟢 TC-1: Старт и выбор роли
