@@ -12,7 +12,7 @@ Close Phase 20 production deployment readiness by fixing the blocking local qual
 - `Direct Buy-1z7.2`: ESLint warning cleanup. Accepted, integrated, and closed; orchestrator expanded ignores for `.next` and `.worktrees`.
 - `Direct Buy-1z7.3`: production deployment runbook/checklist. Accepted, integrated, and closed.
 - `Direct Buy-1z7.4`: unit test gate. Completed locally by orchestrator on the integrated tree and closed.
-- `Direct Buy-1z7.6`: external production infrastructure values. Open; must be completed before smoke/E2E.
+- `Direct Buy-1z7.6`: external production infrastructure values. Blocked; must be completed before smoke/E2E.
 - `Direct Buy-1z7.5`: smoke/E2E deployment gate. Must wait for `Direct Buy-1z7.6`.
 
 ## Verification Evidence
@@ -24,6 +24,7 @@ Close Phase 20 production deployment readiness by fixing the blocking local qual
 - `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` passed through Compose.
 - `docker build --build-arg NEXT_PUBLIC_BOT_USERNAME=directbuy_bot -t directbuy-deploy-check:orchestrator .` passed after retrying a transient Docker snapshot export failure.
 - `scripts/orchestration/run_process_verification.sh` passed.
+- `Direct Buy-1z7.6` readiness check returned blocked: public service is reachable, but app host Docker/Compose, production `.env`, backups, alert ownership, and topology decision are not ready.
 
 ## Coordination Rules
 
@@ -34,5 +35,5 @@ Close Phase 20 production deployment readiness by fixing the blocking local qual
 
 ## Explicit Defers
 
-- `Direct Buy-1z7.6`: DNS, VPS, production `.env`, Caddy certificate path, backups, and alert owner are external/manual.
+- `Direct Buy-1z7.6`: app host Docker/Compose, production `.env` mode/keys, backup destination, alert owner, and PM2/Nginx vs Compose topology are external/manual blockers.
 - `Direct Buy-1z7.5`: waits for `Direct Buy-1z7.6`; do not launch until production or smoke-equivalent infrastructure is available.
