@@ -1,20 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Direct Buy
 
-# Run and deploy your AI Studio app
+Direct Buy is a TypeScript/Node monorepo containing a Next.js 16 admin/web app, a grammY Telegram bot, shared services, Prisma/PostgreSQL data access, and BullMQ/Redis workers.
 
-This contains everything you need to run your app locally.
+## Runtime
 
-View your app in AI Studio: https://ai.studio/apps/4fcdfb39-f842-4707-b8e5-5323aed2c22b
+- Node.js: 22 LTS. The local development baseline is `22.18.0` in `.node-version` and `.nvmrc`; `package.json` enforces `>=22.12.0 <23`.
+- Package manager: `pnpm@10.7.0` via Corepack. `pnpm-lock.yaml` is the canonical lockfile; do not use `npm install` or recreate `package-lock.json`.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+```bash
+corepack enable
+corepack prepare pnpm@10.7.0 --activate
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
+## Verification
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+pnpm lint
+pnpm test
+pnpm build
+```
+
+`pnpm build` requires `DATABASE_URL`, because the admin pages access Prisma while Next.js prerenders them.

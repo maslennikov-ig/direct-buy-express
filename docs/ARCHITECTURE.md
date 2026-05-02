@@ -3,7 +3,8 @@
 ## 1. Технологический стек
 Проект строится как единая кодовая база вокруг экосистемы **TypeScript / Node.js**:
 - **Язык:** TypeScript (Strict mode).
-- **Пакетный менеджер:** `pnpm`.
+- **Runtime:** Node.js 22 LTS. Локальный baseline зафиксирован в `.node-version`/`.nvmrc`, а минимальный поддерживаемый диапазон объявлен в `package.json`.
+- **Пакетный менеджер:** `pnpm` через Corepack. Версия закреплена в `package.json` (`packageManager`), lockfile проекта - только `pnpm-lock.yaml`.
 - **Telegram Bot:** `grammY` — мощный и быстрый фреймворк для написания ботов на TS/JS. Поддерживает удобную работу с сессиями и Middleware.
 - **Admin Panel / Web Backend:** `Next.js 16+` (App Router) + React 19 (Current LTS).
 - **UI Библиотека админки:** TailwindCSS + `shadcn/ui` (или аналоги).

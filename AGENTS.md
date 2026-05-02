@@ -27,14 +27,14 @@ Canonical process check:
 - `scripts/orchestration/run_process_verification.sh`
 
 Canonical code-change checks:
-- `npm run lint`
-- `npm run test`
-- `npm run build`
+- `pnpm lint`
+- `pnpm test`
+- `pnpm build`
 
 Risk-triggered E2E/smoke:
-- `npm run test:e2e`
+- `pnpm test:e2e`
 
-The local runtime must satisfy the installed Next.js, Vite, and Vitest Node engine requirements. If runtime/tooling blocks verification, record the blocker explicitly in Beads and the stage artifact.
+Use Node.js 22 LTS for local and deployment verification. The repo pins the development baseline in `.node-version`/`.nvmrc` and declares `engines.node` plus `packageManager` in `package.json`; use Corepack-managed `pnpm` and do not regenerate `package-lock.json`. If runtime/tooling blocks verification, record the blocker explicitly in Beads and the stage artifact.
 
 ## Orchestration
 

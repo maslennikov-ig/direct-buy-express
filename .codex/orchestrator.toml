@@ -22,9 +22,9 @@ pr_required = false
 
 [verification]
 process_only_commands = ["scripts/orchestration/run_process_verification.sh"]
-code_change_commands = ["npm run lint", "npm run test", "npm run build"]
+code_change_commands = ["pnpm lint", "pnpm test", "pnpm build"]
 stage_close_commands = ["scripts/orchestration/run_process_verification.sh"]
-e2e_commands = ["npm run test:e2e"]
+e2e_commands = ["pnpm test:e2e"]
 stage_level_optional_commands = []
 
 [verification_policy]
@@ -89,4 +89,4 @@ phase1 = "review_child_artifacts"
 phase2 = "verify_commit_push"
 
 [repo_exceptions]
-package_manager_note = "package.json and package-lock.json exist, but current node_modules is pnpm-style and pnpm-lock.yaml is tracked; Phase 20 toolchain task must settle the canonical package-manager contract."
+package_manager_note = "Canonical package manager is pnpm@10.7.0 via packageManager and pnpm-lock.yaml. npm run commands are compatibility checks only; do not recreate package-lock.json."
