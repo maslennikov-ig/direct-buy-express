@@ -36,6 +36,16 @@ describe('E2E environment safety', () => {
         expect(() => loadE2ETestEnv({ cwd })).toThrow(/isolated test database/);
     });
 
+    it('rejects database names where the safety marker is only a substring', () => {
+        const cwd = makeTempProject();
+        writeFileSync(
+            path.join(cwd, '.env.test'),
+            'DATABASE_URL=postgresql://user:password@127.0.0.1:5432/contest\n',
+        );
+
+        expect(() => loadE2ETestEnv({ cwd })).toThrow(/isolated test database/);
+    });
+
     it('uses DATABASE_URL from .env.test instead of an unsafe shell value', () => {
         const cwd = makeTempProject();
         writeFileSync(

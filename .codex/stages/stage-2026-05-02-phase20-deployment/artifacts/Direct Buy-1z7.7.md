@@ -6,6 +6,8 @@ stage_id: stage-2026-05-02-phase20-deployment
 repo: Direct Buy
 branch: master
 base_branch: master
+base_commit: 309d8d15b002a742c4a1af312bc6600ff6138762
+worktree: /home/me/code/Direct Buy
 status: returned
 risk_level: high
 verification:
@@ -15,9 +17,10 @@ verification:
   - TDD red-green for E2E env safety helper: passed
   - Missing .env.test startup guard check: passed; Vitest config failed before test import/destructive setup
   - npm run test:e2e against local isolated PostgreSQL/Redis test services: passed, 1 file / 1 test
+  - Orchestrator review tightened DB-name marker matching and added substring-marker regression coverage: passed
   - scripts/orchestration/run_process_verification.sh: passed
   - pnpm lint: passed
-  - pnpm test: passed, 26 files / 100 tests
+  - pnpm test: passed, 26 files / 101 tests
   - pnpm build: passed
 changed_files:
   - /home/me/code/Direct Buy/package.json
@@ -27,7 +30,8 @@ changed_files:
   - /home/me/code/Direct Buy/__tests__/e2e-env.test.ts
   - /home/me/code/Direct Buy/__tests__/e2e/p2p-flow.test.ts
   - /home/me/code/Direct Buy/docs/QA_TESTING_GUIDE.md
-explicit_defers: []
+explicit_defers:
+  - None
 ---
 
 # Summary
@@ -53,6 +57,10 @@ The E2E test also performs destructive `deleteMany` setup. I added a repo-local 
 - Added unit coverage in `__tests__/e2e-env.test.ts`.
 - Documented the E2E gate contract in `docs/QA_TESTING_GUIDE.md`.
 
+# Orchestrator Acceptance Addendum
+
+During acceptance review, the orchestrator found that the first safety marker regex allowed `test`, `e2e`, or `ci` as any substring of the database name. That would have accepted names such as `contest`. The guard now requires the marker to be a token delimited by start/end, `_`, or `-`, and `__tests__/e2e-env.test.ts` covers the substring-only rejection case.
+
 # Verification Notes
 
 Context7 docs checked:
@@ -74,15 +82,16 @@ Command evidence:
 | `npm run test:e2e` before fix | failed before Vitest on wrong global `dotenv` CLI |
 | `pnpm test __tests__/e2e-env.test.ts` before helper implementation | failed as expected; helper import missing |
 | `pnpm test __tests__/e2e-env.test.ts` after implementation | passed, 4 tests |
+| `pnpm test __tests__/e2e-env.test.ts` after orchestrator review fix | passed, 5 tests |
 | Missing `.env.test` guard run | failed during Vitest config load with `[e2e safety] Missing .env.test...`; test file was not imported |
 | `npm run test:e2e` | passed, 1 file / 1 test |
 | `scripts/orchestration/run_process_verification.sh` | passed |
 | `pnpm lint` | passed |
-| `pnpm test` | passed, 26 files / 100 tests |
+| `pnpm test` | passed, 26 files / 101 tests |
 | `pnpm build` | passed |
 
-# Close Recommendation
+# Risks / Follow-ups
 
-Close `Direct Buy-1z7.7`.
+No explicit defers remain for `Direct Buy-1z7.7`.
 
 The E2E runner no longer depends on the ambient `dotenv` CLI, the destructive setup is guarded before execution, missing or unsafe env fails closed, and `npm run test:e2e` passes against an explicitly isolated local test database.

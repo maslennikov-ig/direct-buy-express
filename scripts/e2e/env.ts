@@ -3,7 +3,7 @@ import path from 'node:path';
 import { parse } from 'dotenv';
 
 const DEFAULT_ENV_FILE = '.env.test';
-const SAFE_DATABASE_NAME_PATTERN = /(?:^|[_-])(test|e2e|ci)(?:$|[_-])|(?:test|e2e|ci)/i;
+const SAFE_DATABASE_NAME_PATTERN = /(^|[_-])(test|e2e|ci)($|[_-])/i;
 const UNSAFE_DATABASE_NAMES = new Set([
     'directbuy',
     'postgres',
