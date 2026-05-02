@@ -5,7 +5,7 @@
 **Перед началом тестирования необходимо:**
 1. Получить **BOT_TOKEN** от @BotFather и прописать его в `.env` на сервере
 2. Установить **MANAGER_CHAT_ID** в `.env` (Telegram ID менеджера для уведомлений). ⚠️ Без этого менеджер не получит алерты от SLA-таймеров
-3. Убедиться, что DNS для `directbuy.aidevteam.ru` указывает на `91.132.59.194`
+3. Убедиться, что `directbuy.aidevteam.ru` открывается по HTTPS через central Caddy; текущий публичный A-record указывает на edge-host, который проксирует на app-host `91.132.59.194:3001`
 
 | Компонент | URL (домен) | URL (прямой) |
 |---|---|---|
@@ -13,7 +13,7 @@
 | Логин | `https://directbuy.aidevteam.ru/admin/login` | `http://91.132.59.194:3001/admin/login` |
 | Telegram-бот | [@mo_lot_bot](https://t.me/mo_lot_bot) | — |
 
-**Пароль админки:** задаётся через `ADMIN_PASSWORD` в `.env` (текущее значение: `DirectBuyAdmin2026`)
+**Доступ в админку:** через Telegram login для аккаунта из `MANAGER_CHAT_ID`; секретные значения берутся только из production `.env` и не публикуются в документации.
 
 ---
 
@@ -237,11 +237,11 @@
 **Шаги:**
 1. Открыть `https://directbuy.aidevteam.ru/admin` (или `http://91.132.59.194:3001/admin`)
 2. Перенаправит на `/admin/login`
-3. Ввести пароль: `DirectBuyAdmin2026`
+3. Войти через Telegram account, который входит в `MANAGER_CHAT_ID`
 
 **Ожидается:** Редирект на дашборд `/admin`
 
-**Негативный:** Ввести неверный пароль → ошибка авторизации
+**Негативный:** Войти через Telegram account, которого нет в `MANAGER_CHAT_ID` → ошибка авторизации
 
 ---
 
@@ -311,10 +311,10 @@
 Проверить через `curl`:
 
 ```bash
-# Авторизация админа (получить admin_session cookie)
+# Авторизация админа (получить admin_session cookie через Telegram login payload)
 curl -v -X POST https://directbuy.aidevteam.ru/api/admin/auth \
   -H "Content-Type: application/json" \
-  -d '{"password":"DirectBuyAdmin2026"}'
+  -d @telegram-login-payload.json
 # В ответе Set-Cookie: admin_session=<TOKEN>
 
 # Одобрить документы лота (перевод DOCS_AUDIT → INVESTOR_REVIEW)

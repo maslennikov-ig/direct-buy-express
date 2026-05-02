@@ -8,7 +8,7 @@ Stable navigation map for this repository. Keep history and current task state i
 - Next.js 16 App Router serves the public/admin web UI and API route handlers.
 - grammY runs the Telegram bot with conversations, menus, middleware, and session storage.
 - BullMQ plus Redis run delayed SLA/background jobs; Prisma targets PostgreSQL.
-- Deployment assets are repo-local: Dockerfile, `docker-compose.yml`, Caddy, and PM2 ecosystem config.
+- Deployment assets are repo-local: Dockerfile, `docker-compose.yml`, Caddy, and PM2 ecosystem config. Current production smoke uses PM2/Nginx on the app host with central Caddy at the HTTPS edge; Compose is the planned future topology.
 
 ## Primary Entrypoints
 
@@ -24,7 +24,8 @@ Stable navigation map for this repository. Keep history and current task state i
 - `bot/index.ts` and `bot/setup.ts` - bot composition and middleware setup.
 - `lib/queue/worker.ts` - BullMQ worker process.
 - `prisma/schema.prisma` - database schema.
-- `docker-compose.yml` - local/production service topology.
+- `docker-compose.yml` - planned Compose service topology.
+- `ecosystem.config.cjs` - current production smoke PM2 process map.
 - `docs/ARCHITECTURE.md` - durable architecture overview.
 - `docs/DEPLOYMENT.md` - deployment notes.
 
@@ -54,7 +55,7 @@ Stable navigation map for this repository. Keep history and current task state i
 - Admin auth/session logic lives in `lib/admin-auth.ts`, `lib/telegram-auth.ts`, and related API routes.
 - Dadata integration lives in `lib/dadata.ts`; never hard-code external lookup responses.
 - Local disk uploads are represented by DB `Media` records and protected API access.
-- Deployment truth is split across `Dockerfile`, `docker-compose.yml`, `Caddyfile`, `ecosystem.config.cjs`, `.env.example`, and deployment docs.
+- Deployment truth is split across `Dockerfile`, `docker-compose.yml`, `Caddyfile`, `ecosystem.config.cjs`, `.env.example`, and deployment docs. `docs/DEPLOYMENT.md` names whether the active production target is PM2/Nginx or Compose.
 - Beads is the only task/status truth; `.codex/handoff.md` is only the current orchestration snapshot.
 - Context7 or first-party docs should be used before changing version-sensitive Next.js, Prisma, grammY, Vitest, ESLint, Tailwind, BullMQ, or Redis behavior.
 

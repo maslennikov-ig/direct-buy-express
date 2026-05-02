@@ -7,12 +7,13 @@
 - Launch mode: manual user launch; prompts live in `.codex/stages/stage-2026-05-02-phase20-deployment/prompts.md`.
 - Beads is the only task truth. Phase 20 deployment epic has child tasks `Direct Buy-1z7.1` through `Direct Buy-1z7.6`.
 - Completion events for `Direct Buy-1z7.1`, `Direct Buy-1z7.2`, and `Direct Buy-1z7.3` were reviewed and accepted by the orchestrator.
-- Completion event `b858da05` for `Direct Buy-1z7.6` was reviewed and accepted as a real blocked return.
+- Completion event `b858da05` for `Direct Buy-1z7.6` was reviewed and accepted as a real blocked return; blockers were later remediated in the same stage.
 - `Direct Buy-1z7.1`, `Direct Buy-1z7.2`, `Direct Buy-1z7.3`, and `Direct Buy-1z7.4` are closed in Beads.
-- `Direct Buy-1z7.6` tracks external production infrastructure values and is blocked.
-- `Direct Buy-1z7.5` remains blocked until `Direct Buy-1z7.6` is satisfied.
-- `Direct Buy-1z7.6` evidence: public `https://directbuy.aidevteam.ru/admin/login` is reachable through central Caddy on `80.74.28.160`, which proxies to app host `91.132.59.194:3001`.
-- `Direct Buy-1z7.6` blockers: app host `91.132.59.194` has no Docker/Compose, production `.env` is mode `644` and missing Phase 20 keys, backup destination is unnamed, alert owner is unnamed, and PM2/Nginx vs Compose topology needs an explicit decision.
+- `Direct Buy-1z7.6` is closed in Beads after resolving external production infrastructure values for the current PM2/Nginx smoke contract.
+- `Direct Buy-1z7.5` is now unblocked and ready to launch.
+- `Direct Buy-1z7.6` resolved topology decision: current production smoke stays PM2/Nginx on app host `91.132.59.194`; central Caddy on `80.74.28.160` terminates HTTPS for `directbuy.aidevteam.ru` and proxies to `91.132.59.194:3001`. Compose is a future migration, not the current smoke contract.
+- `Direct Buy-1z7.6` evidence: production `.env` on `91.132.59.194` is mode `600` and has the required PM2 smoke key names by sanitized presence check; PM2 web/bot/worker are online; Nginx validates; PostgreSQL is ready; Redis returns `PONG`; Bot API `getMe` identifies `mo_lot_bot`; backup destination is `root@80.74.28.160:/var/backups/directbuy/91.132.59.194`; alert owner is Igor Maslennikov / `maslennikov-ig`.
+- `Direct Buy-1z7.5` should use target `https://directbuy.aidevteam.ru` and credential path `/var/www/directbuy/current/.env` on `root@91.132.59.194`. Authorized `/api/lots` currently reaches application auth and returns 500; treat that as first smoke finding, not an infrastructure blocker.
 - Context7 docs checked during review for Next.js `connection()`, Docker Compose config rendering, and Caddy `reverse_proxy` validation.
 - Verification evidence under Node `22.18.0` and `pnpm@10.7.0`: `pnpm lint` passed; `pnpm test` passed 25 files / 95 tests; `pnpm build` passed.
 - Deployment validation evidence: `docker compose config` passed with placeholder env; `caddy validate` passed; `docker build --build-arg NEXT_PUBLIC_BOT_USERNAME=directbuy_bot -t directbuy-deploy-check:orchestrator .` passed on retry after a transient Docker snapshot export error.
@@ -22,13 +23,12 @@
 
 Next stage id: `stage-2026-05-02-phase20-deployment`
 
-Recommended action: resolve the external `Direct Buy-1z7.6` blockers on the production hosts, then rerun the `Direct Buy-1z7.6` readiness check. Launch `Direct Buy-1z7.5` only after `Direct Buy-1z7.6` is closed.
+Recommended action: launch `Direct Buy-1z7.5` against the PM2/Nginx production target.
 
 ## Starter prompt for next orchestrator
 
-Use $orchestrator-stage in `/home/me/code/Direct Buy`. Review `.codex/orchestrator.toml`, `.codex/project-index.md`, `.codex/handoff.md`, Beads, and `.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`. Confirm the completion inbox is empty with `python3 scripts/orchestration/review_completion_inbox.py`, then coordinate external remediation for `Direct Buy-1z7.6`; only after it closes, launch `Direct Buy-1z7.5`.
+Use $orchestrator-stage in `/home/me/code/Direct Buy`. Review `.codex/orchestrator.toml`, `.codex/project-index.md`, `.codex/handoff.md`, Beads, and `.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`. Confirm the completion inbox with `python3 scripts/orchestration/review_completion_inbox.py`, then launch `Direct Buy-1z7.5`.
 
 ## Explicit defers
 
-- `Direct Buy-1z7.6`: production host Docker/Compose, `.env` permissions/keys, backup destination, alert owner, and deployment topology must be resolved outside the repo.
-- `Direct Buy-1z7.5`: smoke/E2E deployment gate waits on `Direct Buy-1z7.6`.
+- `Direct Buy-1z7.5`: production smoke should investigate authorized `/api/lots` returning 500 after credentials are accepted.
