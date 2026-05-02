@@ -9,12 +9,14 @@
 - Completion events for `Direct Buy-1z7.1`, `Direct Buy-1z7.2`, and `Direct Buy-1z7.3` were reviewed and accepted by the orchestrator.
 - Completion event `b858da05` for `Direct Buy-1z7.6` was reviewed and accepted as a real blocked return; blockers were later remediated in the same stage.
 - Completion event `db1cb3b4` for `Direct Buy-1z7.6` was reviewed and accepted as the remediation return.
-- `Direct Buy-1z7.1`, `Direct Buy-1z7.2`, `Direct Buy-1z7.3`, and `Direct Buy-1z7.4` are closed in Beads.
+- Completion event `37d0ed99` for `Direct Buy-1z7.5` was reviewed and accepted as a returned smoke gate.
+- `Direct Buy-1z7.1`, `Direct Buy-1z7.2`, `Direct Buy-1z7.3`, `Direct Buy-1z7.4`, `Direct Buy-1z7.5`, and `Direct Buy-1z7.6` are closed in Beads.
 - `Direct Buy-1z7.6` is closed in Beads after resolving external production infrastructure values for the current PM2/Nginx smoke contract.
-- `Direct Buy-1z7.5` is now unblocked and ready to launch.
+- `Direct Buy-1z7.7` is open and blocks Phase 20 close.
 - `Direct Buy-1z7.6` resolved topology decision: current production smoke stays PM2/Nginx on app host `91.132.59.194`; central Caddy on `80.74.28.160` terminates HTTPS for `directbuy.aidevteam.ru` and proxies to `91.132.59.194:3001`. Compose is a future migration, not the current smoke contract.
 - `Direct Buy-1z7.6` evidence: production `.env` on `91.132.59.194` is mode `600` and has the required PM2 smoke key names by sanitized presence check; PM2 web/bot/worker are online; Nginx validates; PostgreSQL is ready; Redis returns `PONG`; Bot API `getMe` identifies `mo_lot_bot`; backup destination is `root@80.74.28.160:/var/backups/directbuy/91.132.59.194`; alert owner is Igor Maslennikov / `maslennikov-ig`.
-- `Direct Buy-1z7.5` should use target `https://directbuy.aidevteam.ru` and credential path `/var/www/directbuy/current/.env` on `root@91.132.59.194`. Authorized `/api/lots` currently reaches application auth and returns 500; treat that as first smoke finding, not an infrastructure blocker.
+- `Direct Buy-1z7.5` fixed and deployed the authorized `/api/lots` HTTP 500 by serializing Prisma `BigInt` fields before `NextResponse.json`; post-fix production smoke returned HTTP 200 JSON.
+- `Direct Buy-1z7.7` tracks the remaining close blocker: `npm run test:e2e` resolves the wrong `dotenv` CLI and the E2E destructive setup must be guarded so it only runs against an isolated test database.
 - Context7 docs checked during review for Next.js `connection()`, Docker Compose config rendering, and Caddy `reverse_proxy` validation.
 - Verification evidence under Node `22.18.0` and `pnpm@10.7.0`: `pnpm lint` passed; `pnpm test` passed 25 files / 95 tests; `pnpm build` passed.
 - Deployment validation evidence: `docker compose config` passed with placeholder env; `caddy validate` passed; `docker build --build-arg NEXT_PUBLIC_BOT_USERNAME=directbuy_bot -t directbuy-deploy-check:orchestrator .` passed on retry after a transient Docker snapshot export error.
@@ -24,12 +26,12 @@
 
 Next stage id: `stage-2026-05-02-phase20-deployment`
 
-Recommended action: launch `Direct Buy-1z7.5` against the PM2/Nginx production target.
+Recommended action: launch `Direct Buy-1z7.7` to fix the E2E runner isolation gate. Do not close Phase 20 until `npm run test:e2e` has a safe isolated path or a stricter blocker is recorded.
 
 ## Starter prompt for next orchestrator
 
-Use $orchestrator-stage in `/home/me/code/Direct Buy`. Review `.codex/orchestrator.toml`, `.codex/project-index.md`, `.codex/handoff.md`, Beads, and `.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`. Confirm the completion inbox is empty with `python3 scripts/orchestration/review_completion_inbox.py`, then launch `Direct Buy-1z7.5`.
+Use $orchestrator-stage in `/home/me/code/Direct Buy`. Review `.codex/orchestrator.toml`, `.codex/project-index.md`, `.codex/handoff.md`, Beads, and `.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.5.md`. Confirm the completion inbox is empty with `python3 scripts/orchestration/review_completion_inbox.py`, then launch `Direct Buy-1z7.7`.
 
 ## Explicit defers
 
-- `Direct Buy-1z7.5`: production smoke should investigate authorized `/api/lots` returning 500 after credentials are accepted.
+- `Direct Buy-1z7.7`: E2E runner isolation must be fixed before Phase 20 can close.

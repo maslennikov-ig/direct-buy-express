@@ -15,12 +15,13 @@ Completed and accepted:
 - `Direct Buy-1z7.3` - deployment runbook/checklist.
 - `Direct Buy-1z7.4` - unit test gate.
 - `Direct Buy-1z7.6` - production infrastructure readiness for current PM2/Nginx smoke contract.
+- `Direct Buy-1z7.5` - production smoke gate and `/api/lots` BigInt serialization fix.
 
 Can start now:
-- `Direct Buy-1z7.5` - smoke/E2E deployment gate.
+- `Direct Buy-1z7.7` - fix E2E runner isolation for Phase 20 gates.
 
 Must wait:
-- No remaining Phase 20 child stream is blocked by Beads dependencies.
+- Phase 20 close waits for `Direct Buy-1z7.7`.
 
 ## Prompt: Direct Buy-1z7.1
 
@@ -361,4 +362,63 @@ Run:
 
 ## Final Chat Reply
 `TASK Direct Buy-1z7.6 | STATUS <returned|blocked> | EVENT <recorded|failed> | ARTIFACT /home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.6.md`
+```
+
+## Prompt: Direct Buy-1z7.7
+
+```md
+Fix test:e2e runner isolation for Phase 20 gates
+
+Task ID: Direct Buy-1z7.7
+Stage ID: stage-2026-05-02-phase20-deployment
+
+## Role
+Act as a test-infrastructure engineer for a production-adjacent E2E gate.
+
+## Goal
+Make `npm run test:e2e` a safe, deterministic Phase 20 gate. Current evidence from `Direct Buy-1z7.5`: the script `dotenv -e .env.test vitest run --config vitest.e2e.config.ts` resolves an incompatible `dotenv` CLI and fails before Vitest with `Invalid value for '-e' / '--export': '.env.test' is not a valid boolean`. The E2E spec performs destructive `deleteMany` setup, so the command must fail safely unless it is pointed at an explicitly isolated test database.
+
+## Success Criteria
+- `npm run test:e2e` resolves a repo-pinned Node dotenv CLI or an equivalent repo-local env loader.
+- Missing `.env.test`, missing test `DATABASE_URL`, or a production-looking database URL fails with a clear safe error before any destructive setup.
+- The E2E test command runs successfully against an explicitly isolated test database.
+- The docs or scripts make clear that this gate must never target production.
+- Phase 20 can either close after this gate passes, or the remaining blocker is explicit and tracked in Beads.
+
+## Available Context And Tools
+- Workspace root: `/home/me/code/Direct Buy`
+- Contract files: `AGENTS.md`, `.codex/orchestrator.toml`, `.codex/handoff.md`
+- Artifact path: `/home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.7.md`
+- Relevant files: `package.json`, `pnpm-lock.yaml`, `vitest.e2e.config.ts`, `__tests__/e2e/p2p-flow.test.ts`, `.env.example`, `.env.test`, `docs/DEPLOYMENT.md`, `docs/QA_TESTING_GUIDE.md`
+- Use Context7 for current Vitest/Vite behavior if config or runner behavior is involved. Use first-party package docs for the selected dotenv/env-loader CLI if Context7 lacks that package.
+
+## Boundaries
+- Base branch: current pushed `master`.
+- Create a dedicated worktree before editing.
+- Write zone: E2E runner config/scripts, E2E safety guard, lockfile/package metadata, and minimal docs.
+- Do not expose real secrets or commit environment values.
+- Do not run E2E against production or any database that is not explicitly isolated for test deletion.
+- Do not run destructive database commands until the safety guard proves the target is isolated.
+
+## Verification
+- Reproduce the current `npm run test:e2e` runner failure before fixing, if safe.
+- Run focused tests for any new safety guard.
+- Run `npm run test:e2e` against an isolated test database only.
+- Run canonical lint and unit test commands if code/package files change.
+- Run `scripts/orchestration/run_process_verification.sh`.
+
+## Stop / Ask Rules
+Stop and return `blocked` if no isolated test database can be safely provisioned, if `.env.test` cannot be verified without exposing secrets, or if the required fix expands beyond the E2E gate boundary.
+
+## Output Contract
+- Write the artifact using `.codex/stage-artifact-template.md`.
+- Include the exact pre-fix failure, safety guard behavior, isolated DB evidence, and close/not-close recommendation.
+- Do not leave new `TODO/FIXME/HACK/XXX` markers.
+
+## Completion Event
+Run:
+`python3 scripts/orchestration/report_child_completion.py --task "Direct Buy-1z7.7" --stage stage-2026-05-02-phase20-deployment --artifact "/home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.7.md" --status <returned|blocked> --commit <commit_hash_or_n/a> --verify <passed|failed|blocked> --clean <yes|no>`
+
+## Final Chat Reply
+`TASK Direct Buy-1z7.7 | STATUS <returned|blocked> | EVENT <recorded|failed> | ARTIFACT /home/me/code/Direct Buy/.codex/stages/stage-2026-05-02-phase20-deployment/artifacts/Direct Buy-1z7.7.md`
 ```

@@ -13,7 +13,8 @@ Close Phase 20 production deployment readiness by fixing the blocking local qual
 - `Direct Buy-1z7.3`: production deployment runbook/checklist. Accepted, integrated, and closed.
 - `Direct Buy-1z7.4`: unit test gate. Completed locally by orchestrator on the integrated tree and closed.
 - `Direct Buy-1z7.6`: external production infrastructure values. Accepted, remediated, and closed.
-- `Direct Buy-1z7.5`: smoke/E2E deployment gate. Ready to launch against the PM2/Nginx production target.
+- `Direct Buy-1z7.5`: smoke/E2E deployment gate. Accepted and closed; production `/api/lots` smoke now passes after BigInt serialization fix.
+- `Direct Buy-1z7.7`: E2E runner isolation. Open; blocks Phase 20 close.
 
 ## Verification Evidence
 
@@ -25,6 +26,7 @@ Close Phase 20 production deployment readiness by fixing the blocking local qual
 - `docker build --build-arg NEXT_PUBLIC_BOT_USERNAME=directbuy_bot -t directbuy-deploy-check:orchestrator .` passed after retrying a transient Docker snapshot export failure.
 - `scripts/orchestration/run_process_verification.sh` passed.
 - `Direct Buy-1z7.6` readiness check initially returned blocked, then returned remediated: PM2/Nginx is the active smoke contract, production `.env` mode/key presence is verified, backup destination/schedule and alert owner are named, and the target is `https://directbuy.aidevteam.ru`.
+- `Direct Buy-1z7.5` production smoke fixed authorized `/api/lots` 500 and verified post-fix HTTP 200 JSON. Local `pnpm lint`, `pnpm test`, and `pnpm build` passed after review.
 
 ## Coordination Rules
 
@@ -35,5 +37,5 @@ Close Phase 20 production deployment readiness by fixing the blocking local qual
 
 ## Explicit Defers
 
-- `Direct Buy-1z7.5`: production smoke should investigate authorized `/api/lots` returning 500 after credentials are accepted.
+- `Direct Buy-1z7.7`: `npm run test:e2e` runner isolation is the remaining Phase 20 blocker.
 - Compose migration is out of the Phase 20 smoke contract; do not run it without a separate maintenance-window plan.
