@@ -1,19 +1,21 @@
 # Deployment Runbook: Direct Buy
 
-This runbook covers both the current production smoke target and the planned
-Docker Compose deployment path.
+This runbook covers the direct app-host migration state, the historical Phase 20
+production smoke target, and the planned Docker Compose deployment path.
 
-Current production for the Phase 20 smoke gate stays on PM2/Nginx on
-`91.132.59.194`, with public HTTPS terminated by central Caddy on
-`80.74.28.160`. Do not migrate this live host to Compose as part of smoke
-readiness; that would require a planned data/process migration for PostgreSQL,
-Redis, uploads, bot polling, worker jobs, and rollback.
+As of 2026-05-09, `directbuy.aidevteam.ru` has been removed from central Caddy
+on `80.74.28.160` by operator request. The intended next routing state is direct
+DNS/TLS on the app host `91.132.59.194`, configured outside this repo session.
+
+The historical Phase 20 smoke gate used PM2/Nginx on `91.132.59.194`, with
+public HTTPS terminated by central Caddy on `80.74.28.160` and proxied to
+`91.132.59.194:3001`. Do not treat that edge route as current.
 
 Docker Compose remains the preferred future deployment topology because it keeps
 Next.js, the grammY bot, BullMQ worker, PostgreSQL, Redis, Caddy, and persistent
 volumes in one checked configuration. Treat Compose adoption as a separate
-maintenance-window migration, not as a prerequisite for the current production
-smoke gate.
+maintenance-window migration, not as a prerequisite for the direct PM2/Nginx
+app-host target.
 
 Documentation checked on 2026-05-02:
 
@@ -21,7 +23,18 @@ Documentation checked on 2026-05-02:
 - Docker Compose environment interpolation and `docker compose config`: https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/
 - Caddy reverse proxy and automatic HTTPS: https://caddyserver.com/docs/caddyfile/directives/reverse_proxy and https://caddyserver.com/docs/automatic-https
 
-## Current Production Smoke Topology
+## Direct App-Host Migration State
+
+| Layer | Host | Process | Notes |
+| --- | --- | --- | --- |
+| Public DNS | `directbuy.aidevteam.ru` | Operator-managed | Point the A record to `91.132.59.194` when the app-host Nginx/TLS config is ready. |
+| App host | `91.132.59.194` | PM2 `directbuy-web` | Runs `next start -p 3001` from `/var/www/directbuy/current`. |
+| Telegram bot | `91.132.59.194` | PM2 `directbuy-bot` | Runs `tsx bot/start.ts` from `/var/www/directbuy/current`. |
+| SLA worker | `91.132.59.194` | PM2 `directbuy-worker` | Runs `tsx lib/queue/worker.ts` from `/var/www/directbuy/current`. |
+| Database/cache | `91.132.59.194` | local PostgreSQL and Redis | Bound to loopback. |
+| Former HTTPS edge | `80.74.28.160` | Docker `central-caddy` | The `directbuy.aidevteam.ru` route was removed on 2026-05-09. |
+
+## Historical Phase 20 Smoke Topology
 
 | Layer | Host | Process | Notes |
 | --- | --- | --- | --- |
@@ -35,7 +48,7 @@ Documentation checked on 2026-05-02:
 The production `.env` lives at `/var/www/directbuy/current/.env` on the app host,
 must be mode `0600`, and must not be copied into repo artifacts or chat output.
 
-Current smoke credential path:
+Direct app-host credential path:
 
 - Target URL: `https://directbuy.aidevteam.ru`
 - App host credential file: `/var/www/directbuy/current/.env` on `root@91.132.59.194`
@@ -45,11 +58,16 @@ Current smoke credential path:
   `SLA_INVESTOR_REVIEW_HOURS`, `SLA_OFFER_RESPONSE_HOURS`, `BOT_ACTIVE`,
   optional `DADATA_API_KEY`, and optional `LOG_LEVEL`
 
-Current production checks:
+Direct app-host checks:
+
+```bash
+ssh root@91.132.59.194 'cd /var/www/directbuy/current && stat -c %a .env && pm2 status && nginx -t && pg_isready -h 127.0.0.1 -p 5432 && redis-cli -h 127.0.0.1 ping'
+```
+
+Historical Phase 20 edge checks, not valid after the 2026-05-09 edge cleanup:
 
 ```bash
 ssh root@80.74.28.160 'docker exec central-caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile'
-ssh root@91.132.59.194 'cd /var/www/directbuy/current && stat -c %a .env && pm2 status && nginx -t && pg_isready -h 127.0.0.1 -p 5432 && redis-cli -h 127.0.0.1 ping'
 curl -fsS https://directbuy.aidevteam.ru/admin/login >/tmp/directbuy-admin-login.html
 ```
 
@@ -100,8 +118,8 @@ openssl rand -base64 48
 
 ## Manual Infrastructure Checklist
 
-Complete these actions before the first Compose deploy. For the current
-PM2/Nginx smoke target, use the current production topology section above.
+Complete these actions before the first Compose deploy. For the direct
+PM2/Nginx app-host target, use the direct app-host migration section above.
 
 - Provision a Linux VPS with Docker Engine and the Docker Compose plugin.
 - Open inbound TCP `80` and `443`; keep SSH limited to the operator allowlist.
@@ -113,8 +131,8 @@ PM2/Nginx smoke target, use the current production topology section above.
 - Confirm alert ownership: who watches `docker compose ps`, Caddy certificate failures, bot polling failures, worker errors, disk usage, and failed backups.
 
 These actions are required before switching the live deployment contract to
-Compose. The Phase 20 smoke gate can run against the current PM2/Nginx target
-after `Direct Buy-1z7.6` confirms the external values and owners.
+Compose. The historical Phase 20 smoke gate used the PM2/Nginx target after
+`Direct Buy-1z7.6` confirmed the external values and owners.
 
 ## First Deploy
 
@@ -182,9 +200,8 @@ client-exposed build-time value in Next.js.
 ## Smoke Checks
 
 Run these after first Compose deploy, after each Compose update, and before
-marking a Compose-based `Direct Buy-1z7.5` complete. For the current PM2/Nginx
-target, use the smoke target and credential path from the current production
-topology section.
+marking a Compose-based `Direct Buy-1z7.5` complete. For the direct PM2/Nginx
+app-host target, use the direct app-host migration state section above.
 
 ```bash
 set -a
