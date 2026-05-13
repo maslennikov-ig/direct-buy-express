@@ -38,7 +38,7 @@ Use Node.js 22 LTS for local and deployment verification. The repo pins the deve
 
 ## Orchestration
 
-The repo follows the `balanced-v2.7` orchestration baseline. Stable navigation lives in `.codex/project-index.md`; current operational state lives in `.codex/handoff.md`; detailed stage work belongs under `.codex/stages/`.
+The repo follows the `balanced-v2.9` orchestration baseline. Stable navigation lives in `.codex/project-index.md`; current operational state lives in `.codex/handoff.md`; detailed stage work belongs under `.codex/stages/`.
 
 Simple orchestration work stays local by default: handoff updates, Beads maintenance, stage planning, analysis-only summaries, and prompt drafting should not be delegated unless complexity, isolation, or parallelism clearly justifies it.
 
@@ -46,7 +46,7 @@ When delegation is warranted, prefer one cohesive stream per outcome. Do not spl
 
 Delegated agents must fetch current Context7 documentation for relevant version-sensitive dependencies before implementation, and must state when no such dependency applies.
 
-Child prompts must be outcome-first and boundary-driven: define role, goal, success criteria, context/tools, boundaries, verification, output contract, stop rules, and completion event. Use `.codex/manual-agent-prompt-template.md` for manual launches.
+Subagent tasks must be outcome-first and boundary-driven: define role, goal, success criteria, context/tools, boundaries, verification, output contract, stop rules, selected docs/skills/agents, and completion event. Use `.codex/subagent-spawn-template.md` for Codex subagents; `.codex/manual-agent-prompt-template.md` is fallback only.
 
 ## Safety And Closeout
 

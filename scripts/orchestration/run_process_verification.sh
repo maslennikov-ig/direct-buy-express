@@ -30,7 +30,7 @@ import pathlib
 import re
 import tomllib
 
-EXPECTED_PROFILE = "balanced-v2.7"
+EXPECTED_PROFILE = "balanced-v2.9"
 EXPECTED_SOURCE_SKILL = "orchestration-setup"
 
 orchestrator_path = pathlib.Path(".codex/orchestrator.toml")
@@ -45,6 +45,8 @@ required = [
     handoff_file,
     project_index_file,
     artifact_template,
+    pathlib.Path(".codex/subagent-task-contract.md"),
+    pathlib.Path(".codex/subagent-spawn-template.md"),
     pathlib.Path("scripts/orchestration/run_stage_closeout.py"),
     pathlib.Path("scripts/orchestration/cleanup_stage_workspace.py"),
     pathlib.Path("scripts/orchestration/report_child_completion.py"),
@@ -52,7 +54,19 @@ required = [
 ]
 
 workspace = contract.get("workspace", {})
-if isinstance(workspace, dict) and workspace.get("launch_mode") == "manual_user_launch":
+delegation = contract.get("delegation", {})
+launcher = "codex_subagents"
+if isinstance(delegation, dict) and isinstance(delegation.get("launcher"), str):
+    launcher = delegation["launcher"]
+elif isinstance(workspace, dict) and workspace.get("launch_mode") == "manual_user_launch":
+    launcher = "manual_user_launch"
+
+if launcher not in {"codex_subagents", "manual_user_launch", "none"}:
+    raise SystemExit(
+        "delegation.launcher must be one of codex_subagents, manual_user_launch, or none"
+    )
+
+if launcher == "manual_user_launch":
     manual_prompt_template = pathlib.Path(
         contract.get("manual_prompt_template", ".codex/manual-agent-prompt-template.md")
     )

@@ -18,6 +18,7 @@ DEBT_POLICY_REFERENCE_PATTERNS = (
     "debt markers",
 )
 PROJECT_INDEX_REVIEW_MARKER = "project-index: reviewed-no-change"
+PLACEHOLDERS = {"", "n/a", "<short cleanup result or blocker>"}
 STRUCTURAL_CHANGE_PREFIXES = (
     "src/api/",
     "src/integrations/",
@@ -124,6 +125,49 @@ def stage_has_high_risk_artifact(artifacts: list[dict[str, object]]) -> bool:
         if isinstance(risk_level, str) and risk_level.lower() == "high":
             return True
     return False
+
+
+def meaningful_scalar(value: object) -> str:
+    if not isinstance(value, str):
+        return ""
+    stripped = value.strip()
+    if not stripped or (stripped.startswith("<") and stripped.endswith(">")):
+        return ""
+    if stripped in PLACEHOLDERS:
+        return ""
+    return stripped
+
+
+def check_child_acceptance_cleanup(artifacts: list[dict[str, object]]) -> None:
+    failures: list[str] = []
+    for artifact in artifacts:
+        task_id = meaningful_scalar(artifact.get("task_id")) or "<unknown-task>"
+        status = meaningful_scalar(artifact.get("status"))
+        accepted = meaningful_scalar(artifact.get("accepted_by_orchestrator"))
+        if status not in {"accepted", "merged"} and accepted != "yes":
+            continue
+
+        delivery_method = meaningful_scalar(artifact.get("delivery_method"))
+        cleanup_status = meaningful_scalar(artifact.get("cleanup_status"))
+        cleanup_notes = meaningful_scalar(artifact.get("cleanup_notes"))
+
+        if delivery_method in {"", "not accepted"}:
+            failures.append(f"{task_id}: accepted stream missing delivery_method")
+        if accepted != "yes":
+            failures.append(f"{task_id}: accepted stream missing accepted_by_orchestrator: yes")
+        if cleanup_status not in {"cleaned", "blocked"}:
+            failures.append(f"{task_id}: accepted stream cleanup_status must be cleaned or blocked")
+        if not cleanup_notes:
+            failures.append(f"{task_id}: accepted stream missing cleanup_notes")
+
+    if not failures:
+        print("child acceptance cleanup OK")
+        return
+
+    print("Accepted child streams require mini-closeout before stage close:", file=sys.stderr)
+    for failure in failures:
+        print(f"- {failure}", file=sys.stderr)
+    raise SystemExit(1)
 
 
 def add_e2e_group_when_requested(
@@ -367,6 +411,7 @@ def main(argv: list[str]) -> int:
         requested=args.include_e2e or stage_has_high_risk_artifact(artifacts),
     )
 
+    check_child_acceptance_cleanup(artifacts)
     check_project_index_review(repo_root, contract, args.stage_id)
     check_debt_markers(repo_root, contract)
 

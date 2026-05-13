@@ -5,13 +5,18 @@ artifact_template = ".codex/stage-artifact-template.md"
 manual_prompt_template = ".codex/manual-agent-prompt-template.md"
 
 [baseline]
-profile = "balanced-v2.7"
+profile = "balanced-v2.9"
 source_skill = "orchestration-setup"
 
 [workspace]
 topology = "single-repo"
 multi_repo = false
 launch_mode = "manual_user_launch"
+
+[delegation]
+launcher = "codex_subagents"
+write_heavy_requires_dedicated_worktree = true
+worker_isolation = "dedicated_branch_worktree"
 
 [delivery]
 mode = "direct"
@@ -41,8 +46,8 @@ artifact_template = ".codex/stage-artifact-template.md"
 
 [completion_inbox]
 scope = "git_common_dir"
-events_file = "codex-completion-inbox/events.jsonl"
-review_state_file = "codex-completion-inbox/review-state.json"
+events_file = "codex-orchestration/completions.ndjson"
+review_state_file = "codex-orchestration/review-state.json"
 report_entrypoint = "scripts/orchestration/report_child_completion.py"
 review_entrypoint = "scripts/orchestration/review_completion_inbox.py"
 

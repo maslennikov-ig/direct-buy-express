@@ -20,6 +20,10 @@ REQUIRED_KEYS = {
     "base_commit",
     "worktree",
     "status",
+    "delivery_method",
+    "accepted_by_orchestrator",
+    "cleanup_status",
+    "cleanup_notes",
     "risk_level",
     "verification",
     "changed_files",
@@ -29,6 +33,9 @@ REQUIRED_KEYS = {
 REQUIRED_LIST_KEYS = {"verification", "changed_files", "explicit_defers"}
 ALLOWED_SCHEMA_VERSIONS = {"orchestration-artifact/v1"}
 ALLOWED_STATUSES = {"returned", "accepted", "merged", "blocked"}
+ALLOWED_DELIVERY_METHODS = {"merge", "cherry-pick", "manual integration", "not accepted", "n/a"}
+ALLOWED_ACCEPTED_BY_ORCHESTRATOR = {"yes", "no"}
+ALLOWED_CLEANUP_STATUSES = {"pending", "cleaned", "blocked", "not_applicable"}
 ALLOWED_RISK_LEVELS = {"low", "medium", "high"}
 
 REQUIRED_HEADINGS = [
@@ -139,6 +146,12 @@ def validate_file(path: pathlib.Path) -> list[str]:
         errors.extend(validate_scalar(path, "schema_version", values, ALLOWED_SCHEMA_VERSIONS))
     if "status" in values:
         errors.extend(validate_scalar(path, "status", values, ALLOWED_STATUSES))
+    if "delivery_method" in values:
+        errors.extend(validate_scalar(path, "delivery_method", values, ALLOWED_DELIVERY_METHODS))
+    if "accepted_by_orchestrator" in values:
+        errors.extend(validate_scalar(path, "accepted_by_orchestrator", values, ALLOWED_ACCEPTED_BY_ORCHESTRATOR))
+    if "cleanup_status" in values:
+        errors.extend(validate_scalar(path, "cleanup_status", values, ALLOWED_CLEANUP_STATUSES))
     if "risk_level" in values:
         errors.extend(validate_scalar(path, "risk_level", values, ALLOWED_RISK_LEVELS))
 
