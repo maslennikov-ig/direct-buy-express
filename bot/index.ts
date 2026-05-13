@@ -1,5 +1,5 @@
-import { Bot, Context, session, type SessionFlavor } from "grammy";
-import { run } from "@grammyjs/runner";
+import { Bot, Context, session } from "grammy";
+import { run, sequentialize } from "@grammyjs/runner";
 import { apiThrottler } from "@grammyjs/transformer-throttler";
 import { type Conversation, type ConversationFlavor, conversations, createConversation } from "@grammyjs/conversations";
 import { createLotConversation } from "./conversations/create-lot";
@@ -37,10 +37,14 @@ export const bot = new Bot<MyContext>(process.env.BOT_TOKEN || "mock_token_for_t
 bot.api.config.use(autoRetry());
 bot.api.config.use(apiThrottler());
 
+const getSessionKey = (ctx: Pick<Context, "chat">) => ctx.chat?.id.toString();
+
 // Session: persisted to Redis in prod, in-memory for tests
 const useRedis = process.env.NODE_ENV !== 'test' && process.env.REDIS_URL !== undefined;
+bot.use(sequentialize(getSessionKey));
 bot.use(session({
     initial: () => ({}),
+    getSessionKey,
     ...(useRedis ? { storage: sessionStorage } : {}),
 }));
 

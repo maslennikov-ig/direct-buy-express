@@ -22,10 +22,20 @@ vi.mock('../lib/dadata', () => ({
 }));
 
 /** Generate N mock photo messages for the conversation */
-function makePhotoMessages(n: number) {
+function makePhotoMessages(n: number, mediaGroupId?: string) {
     return Array.from({ length: n }, (_, i) => ({
-        message: { photo: [{ file_id: `small_${i}`, width: 100, height: 100 }, { file_id: `photo_${i}`, width: 800, height: 600 }] }
+        message: {
+            ...(mediaGroupId ? { media_group_id: mediaGroupId } : {}),
+            photo: [{ file_id: `small_${i}`, width: 100, height: 100 }, { file_id: `photo_${i}`, width: 800, height: 600 }]
+        }
     }));
+}
+
+function makePhotoCallback(data: 'lot_photos_done' | 'lot_photos_skip') {
+    return {
+        callbackQuery: { data },
+        answerCallbackQuery: vi.fn().mockResolvedValue(undefined),
+    };
 }
 
 describe('createLotConversation', () => {
@@ -102,11 +112,12 @@ describe('createLotConversation', () => {
         expect((prisma.media.createMany as any).mock.calls[0][0].data).toHaveLength(7);
     });
 
-    it('should reject "done" if less than 7 photos uploaded', async () => {
+    it('should allow skipping optional photos with inline callback', async () => {
         const mockCtx = {
             from: { id: 12345, first_name: 'Owner Name' },
             reply: vi.fn(),
         } as any;
+        const skipCallback = makePhotoCallback('lot_photos_skip');
 
         const mockAnswers = [
             { message: { text: 'Тверская 1' } },
@@ -116,29 +127,70 @@ describe('createLotConversation', () => {
             { message: { text: 'Нет' } },
             { message: { text: 'Нет' } },
             { message: { text: 'Нет' } },
-            ...makePhotoMessages(3),             // Only 3 photos
-            { message: { text: 'Готово' } },     // Try to finish early — rejected
-            ...makePhotoMessages(4),             // 4 more = 7 total
-            { message: { text: 'Готово' } },     // Now accepted
+            skipCallback,
             { message: { text: '15000000' } },
             { message: { text: 'Срочный переезд' } }
         ];
 
         let waitIndex = 0;
         const mockConversation = {
-            wait: vi.fn().mockImplementation(() => Promise.resolve(mockAnswers[waitIndex++])),
+            wait: vi.fn().mockImplementation(() => {
+                const next = mockAnswers[waitIndex++];
+                if (!next) throw new Error('No more mock updates');
+                return Promise.resolve(next);
+            }),
             external: vi.fn().mockImplementation(async (cb) => await cb())
         } as any;
 
         await createLotConversation(mockConversation, mockCtx);
 
-        // Verify it rejected the early "done"
-        expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('минимум 7 фото'));
-        // But eventually succeeded
         expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('ЧЕРНОВИК'));
+        expect(skipCallback.answerCallbackQuery).toHaveBeenCalled();
+        const { prisma } = await import('../lib/db');
+        expect(prisma.media.createMany).not.toHaveBeenCalled();
     });
 
-    it('should auto-stop at 10 photos', async () => {
+    it('should allow finishing after one uploaded photo', async () => {
+        const mockCtx = {
+            from: { id: 12345, first_name: 'Owner Name' },
+            reply: vi.fn(),
+        } as any;
+        const doneCallback = makePhotoCallback('lot_photos_done');
+
+        const mockAnswers = [
+            { message: { text: 'Тверская 1' } },
+            { message: { text: '45.5' } },
+            { message: { text: '5' } },
+            { message: { text: '2' } },
+            { message: { text: 'Нет' } },
+            { message: { text: 'Нет' } },
+            { message: { text: 'Нет' } },
+            ...makePhotoMessages(1),
+            doneCallback,
+            { message: { text: '15000000' } },
+            { message: { text: 'Срочный переезд' } }
+        ];
+
+        let waitIndex = 0;
+        const mockConversation = {
+            wait: vi.fn().mockImplementation(() => {
+                const next = mockAnswers[waitIndex++];
+                if (!next) throw new Error('No more mock updates');
+                return Promise.resolve(next);
+            }),
+            external: vi.fn().mockImplementation(async (cb) => await cb())
+        } as any;
+
+        await createLotConversation(mockConversation, mockCtx);
+
+        expect(doneCallback.answerCallbackQuery).toHaveBeenCalled();
+        const { prisma } = await import('../lib/db');
+        const mediaData = (prisma.media.createMany as any).mock.calls[0][0].data;
+        expect(mediaData).toHaveLength(1);
+        expect(mediaData[0]).toEqual(expect.objectContaining({ type: 'PHOTO', url: 'photo_0' }));
+    });
+
+    it('should save every photo from a Telegram media group', async () => {
         const mockCtx = {
             from: { id: 12345, first_name: 'Owner Name' },
             reply: vi.fn(),
@@ -152,7 +204,49 @@ describe('createLotConversation', () => {
             { message: { text: 'Нет' } },
             { message: { text: 'Нет' } },
             { message: { text: 'Нет' } },
-            ...makePhotoMessages(10),            // 10 photos — hits max
+            ...makePhotoMessages(4, 'album-1'),
+            makePhotoCallback('lot_photos_done'),
+            { message: { text: '15000000' } },
+            { message: { text: 'Срочный переезд' } }
+        ];
+
+        let waitIndex = 0;
+        const mockConversation = {
+            wait: vi.fn().mockImplementation(() => {
+                const next = mockAnswers[waitIndex++];
+                if (!next) throw new Error('No more mock updates');
+                return Promise.resolve(next);
+            }),
+            external: vi.fn().mockImplementation(async (cb) => await cb())
+        } as any;
+
+        await createLotConversation(mockConversation, mockCtx);
+
+        const { prisma } = await import('../lib/db');
+        const mediaData = (prisma.media.createMany as any).mock.calls[0][0].data;
+        expect(mediaData).toHaveLength(4);
+        expect(mediaData.map((m: any) => m.url)).toEqual(['photo_0', 'photo_1', 'photo_2', 'photo_3']);
+        expect(mockCtx.reply).toHaveBeenCalledWith(
+            expect.stringContaining('Загружено: 4/30'),
+            expect.anything()
+        );
+    });
+
+    it('should auto-stop at 30 photos', async () => {
+        const mockCtx = {
+            from: { id: 12345, first_name: 'Owner Name' },
+            reply: vi.fn(),
+        } as any;
+
+        const mockAnswers = [
+            { message: { text: 'Тверская 1' } },
+            { message: { text: '45.5' } },
+            { message: { text: '5' } },
+            { message: { text: '2' } },
+            { message: { text: 'Нет' } },
+            { message: { text: 'Нет' } },
+            { message: { text: 'Нет' } },
+            ...makePhotoMessages(30),            // 30 photos — hits max
             { message: { text: '15000000' } },
             { message: { text: 'Срочный переезд' } }
         ];
@@ -167,6 +261,8 @@ describe('createLotConversation', () => {
 
         expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('максимум'));
         expect(mockCtx.reply).toHaveBeenCalledWith(expect.stringContaining('ЧЕРНОВИК'));
+        const { prisma } = await import('../lib/db');
+        expect((prisma.media.createMany as any).mock.calls[0][0].data).toHaveLength(30);
     });
 
     it('should prompt again on invalid area, floor, rooms and price', async () => {

@@ -1,10 +1,54 @@
 import { Prisma } from '@prisma/client';
+import { InlineKeyboard } from 'grammy';
 import type { MyConversation, MyContext } from '../types';
 import { suggestAddress } from '../../lib/dadata';
 import { prisma } from '../../lib/db';
 
-const MIN_PHOTOS = 7;
-const MAX_PHOTOS = 10;
+const MAX_PHOTOS = 30;
+const PHOTO_DONE_CALLBACK = 'lot_photos_done';
+const PHOTO_SKIP_CALLBACK = 'lot_photos_skip';
+
+type PhotoUploadAction = 'done' | 'skip';
+
+function getPhotoUploadKeyboard(hasPhotos: boolean) {
+    const keyboard = new InlineKeyboard().text("✅ Готово", PHOTO_DONE_CALLBACK);
+    if (!hasPhotos) {
+        keyboard.text("⏭ Без фото", PHOTO_SKIP_CALLBACK);
+    }
+    return { reply_markup: keyboard };
+}
+
+function getPhotoFileId(ctx: MyContext) {
+    const photos = ctx.message?.photo;
+    if (photos && photos.length > 0) {
+        return photos[photos.length - 1].file_id;
+    }
+
+    const document = ctx.message?.document;
+    if (document?.mime_type?.startsWith('image/')) {
+        return document.file_id;
+    }
+
+    return null;
+}
+
+function getPhotoUploadAction(ctx: MyContext): PhotoUploadAction | null {
+    const callbackData = ctx.callbackQuery?.data;
+    if (callbackData === PHOTO_DONE_CALLBACK) return 'done';
+    if (callbackData === PHOTO_SKIP_CALLBACK) return 'skip';
+
+    const text = ctx.message?.text?.trim().toLowerCase();
+    if (text === 'готово' || text === 'done') return 'done';
+    if (text === 'без фото' || text === 'пропустить' || text === 'skip') return 'skip';
+
+    return null;
+}
+
+async function answerPhotoCallback(ctx: MyContext) {
+    if (ctx.callbackQuery) {
+        await ctx.answerCallbackQuery();
+    }
+}
 
 export async function createLotConversation(
     conversation: MyConversation,
@@ -102,55 +146,53 @@ export async function createLotConversation(
     }
 
 
-    // PHOTOS (ТЗ §3 п.3: 7-10 обязательных фото)
+    // PHOTOS
     await ctx.reply(
         `📸 Время для фото!\n\n` +
-        `Загрузите от ${MIN_PHOTOS} до ${MAX_PHOTOS} фотографий объекта ` +
+        `Фото необязательны. Можно продолжить без них или загрузить до ${MAX_PHOTOS} фотографий объекта ` +
         `(кухня, санузел, основные комнаты, вид из окна).\n\n` +
         `Отправьте фото одним или несколькими сообщениями.\n` +
-        `Загружено: 0/${MIN_PHOTOS} (минимум)`
+        `Загружено: 0/${MAX_PHOTOS}`,
+        getPhotoUploadKeyboard(false)
     );
 
     const photoFileIds: string[] = [];
 
     while (photoFileIds.length < MAX_PHOTOS) {
         const photoMsg = await conversation.wait();
+        const action = getPhotoUploadAction(photoMsg);
 
-        // Check for "done" signal
-        if (photoMsg.message?.text?.toLowerCase() === 'готово' || photoMsg.message?.text?.toLowerCase() === 'done') {
-            if (photoFileIds.length >= MIN_PHOTOS) {
-                break;
+        if (action) {
+            await answerPhotoCallback(photoMsg);
+            if (photoFileIds.length === 0) {
+                await ctx.reply("✅ Продолжаем без фото.");
+            } else {
+                await ctx.reply(`✅ Загружено ${photoFileIds.length} фото. Переходим дальше.`);
             }
-            await ctx.reply(`❗ Необходимо загрузить минимум ${MIN_PHOTOS} фото. Сейчас: ${photoFileIds.length}. Продолжайте загрузку.`);
+            break;
+        }
+
+        const photoFileId = getPhotoFileId(photoMsg);
+        if (!photoFileId) {
+            await ctx.reply(
+                "Пожалуйста, отправьте фотографию объекта или нажмите кнопку для продолжения.",
+                getPhotoUploadKeyboard(photoFileIds.length > 0)
+            );
             continue;
         }
 
-        // Accept photos
-        if (photoMsg.message?.photo && photoMsg.message.photo.length > 0) {
-            // Telegram sends multiple sizes, take the largest
-            const largestPhoto = photoMsg.message.photo[photoMsg.message.photo.length - 1];
-            photoFileIds.push(largestPhoto.file_id);
-        } else if (photoMsg.message?.document?.mime_type?.startsWith('image/')) {
-            photoFileIds.push(photoMsg.message.document.file_id);
-        } else {
-            await ctx.reply("Пожалуйста, отправьте фотографию объекта.");
-            continue;
-        }
+        photoFileIds.push(photoFileId);
 
         if (photoFileIds.length >= MAX_PHOTOS) {
             await ctx.reply(`✅ Загружено ${photoFileIds.length} фото (максимум). Переходим дальше.`);
             break;
-        } else if (photoFileIds.length >= MIN_PHOTOS) {
-            await ctx.reply(
-                `✅ Загружено ${photoFileIds.length}/${MAX_PHOTOS} фото.\n` +
-                `Вы можете отправить ещё (до ${MAX_PHOTOS - photoFileIds.length}) или напишите «Готово» для продолжения.`
-            );
-        } else {
-            const remaining = MIN_PHOTOS - photoFileIds.length;
-            await ctx.reply(
-                `📷 Загружено ${photoFileIds.length}/${MIN_PHOTOS} (минимум). Ещё ${remaining}.`
-            );
         }
+
+        await ctx.reply(
+            `📷 Загружено: ${photoFileIds.length}/${MAX_PHOTOS}.\n` +
+            `Отправьте ещё фото или нажмите «Готово».`,
+            getPhotoUploadKeyboard(true)
+        );
     }
 
     // FINANCIAL - PRICE
@@ -221,4 +263,3 @@ export async function createLotConversation(
         await ctx.reply("❌ Произошла ошибка при сохранении. Попробуйте снова позже.");
     }
 }
-
