@@ -8,7 +8,7 @@ Stable navigation map for this repository. Keep history and current task state i
 - Next.js 16 App Router serves the public/admin web UI and API route handlers.
 - grammY runs the Telegram bot with conversations, menus, middleware, and session storage.
 - BullMQ plus Redis run delayed SLA/background jobs; Prisma targets PostgreSQL.
-- Deployment assets are repo-local: Dockerfile, `docker-compose.yml`, Caddy, and PM2 ecosystem config. Current direct-host migration state uses PM2/Nginx on the app host; the former central Caddy edge route was removed on 2026-05-09; Compose is the planned future topology.
+- Deployment assets are repo-local: Dockerfile, `docker-compose.yml`, Caddy, and PM2 ecosystem config. Current production uses PM2/Nginx on the app host at `directbuy.zalogium.ru`; the former central Caddy edge route was removed on 2026-05-09; Compose is the planned future topology.
 
 ## Primary Entrypoints
 

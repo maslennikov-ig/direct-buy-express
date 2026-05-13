@@ -5,12 +5,13 @@
 **Перед началом тестирования необходимо:**
 1. Получить **BOT_TOKEN** от @BotFather и прописать его в `.env` на сервере
 2. Установить **MANAGER_CHAT_ID** в `.env` (Telegram ID менеджера для уведомлений). ⚠️ Без этого менеджер не получит алерты от SLA-таймеров
-3. Убедиться, что `directbuy.aidevteam.ru` открывается по HTTPS через central Caddy; текущий публичный A-record указывает на edge-host, который проксирует на app-host `91.132.59.194:3001`
+3. Убедиться, что `directbuy.zalogium.ru` открывается по HTTPS напрямую на app-host `91.132.59.194`
+4. В @BotFather для `@mo_lot_bot` должен быть добавлен web login domain `directbuy.zalogium.ru`
 
 | Компонент | URL (домен) | URL (прямой) |
 |---|---|---|
-| Админ-панель | `https://directbuy.aidevteam.ru/admin` | `http://91.132.59.194:3001/admin` |
-| Логин | `https://directbuy.aidevteam.ru/admin/login` | `http://91.132.59.194:3001/admin/login` |
+| Админ-панель | `https://directbuy.zalogium.ru/admin` | `http://91.132.59.194:3001/admin` |
+| Логин | `https://directbuy.zalogium.ru/admin/login` | `http://91.132.59.194:3001/admin/login` |
 | Telegram-бот | [@mo_lot_bot](https://t.me/mo_lot_bot) | — |
 
 **Доступ в админку:** через Telegram login для аккаунта из `MANAGER_CHAT_ID`; секретные значения берутся только из production `.env` и не публикуются в документации.
@@ -248,7 +249,7 @@
 ### 🟢 TC-10: Вход в админку
 
 **Шаги:**
-1. Открыть `https://directbuy.aidevteam.ru/admin` (или `http://91.132.59.194:3001/admin`)
+1. Открыть `https://directbuy.zalogium.ru/admin` (или `http://91.132.59.194:3001/admin`)
 2. Перенаправит на `/admin/login`
 3. Войти через Telegram account, который входит в `MANAGER_CHAT_ID`
 
@@ -325,25 +326,25 @@
 
 ```bash
 # Авторизация админа (получить admin_session cookie через Telegram login payload)
-curl -v -X POST https://directbuy.aidevteam.ru/api/admin/auth \
+curl -v -X POST https://directbuy.zalogium.ru/api/admin/auth \
   -H "Content-Type: application/json" \
   -d @telegram-login-payload.json
 # В ответе Set-Cookie: admin_session=<TOKEN>
 
 # Одобрить документы лота (перевод DOCS_AUDIT → INVESTOR_REVIEW)
-curl -X POST https://directbuy.aidevteam.ru/api/admin/lots/<LOT_ID>/approve \
+curl -X POST https://directbuy.zalogium.ru/api/admin/lots/<LOT_ID>/approve \
   -H "Cookie: admin_session=<TOKEN>"
 
 # Верифицировать инвестора
-curl -X POST https://directbuy.aidevteam.ru/api/admin/investors/<USER_ID>/verify \
+curl -X POST https://directbuy.zalogium.ru/api/admin/investors/<USER_ID>/verify \
   -H "Cookie: admin_session=<TOKEN>"
 
 # Завершить сделку
-curl -X POST https://directbuy.aidevteam.ru/api/admin/lots/<LOT_ID>/complete \
+curl -X POST https://directbuy.zalogium.ru/api/admin/lots/<LOT_ID>/complete \
   -H "Cookie: admin_session=<TOKEN>"
 
 # Отменить сделку
-curl -X POST https://directbuy.aidevteam.ru/api/admin/lots/<LOT_ID>/cancel \
+curl -X POST https://directbuy.zalogium.ru/api/admin/lots/<LOT_ID>/cancel \
   -H "Cookie: admin_session=<TOKEN>"
 ```
 
@@ -379,4 +380,4 @@ curl -X POST https://directbuy.aidevteam.ru/api/admin/lots/<LOT_ID>/cancel \
 2. **DaData** — без ключа `DADATA_API_KEY` подсказки адресов не работают (не критично)
 3. **Файлы документов** — в тестовом режиме создаются пустые файлы-заглушки
 4. **SLA-таймеры** — в production работают с реальными задержками (2-24 часов)
-5. **SSL** — `directbuy.aidevteam.ru` работает по HTTPS 🔒 (сертификаты Let's Encrypt настроены автоматически).
+5. **SSL** — `directbuy.zalogium.ru` работает по HTTPS 🔒 (сертификаты Let's Encrypt настроены автоматически).

@@ -1,11 +1,15 @@
 # Deployment Runbook: Direct Buy
 
-This runbook covers the direct app-host migration state, the historical Phase 20
-production smoke target, and the planned Docker Compose deployment path.
+This runbook covers the current direct app-host production state, the historical
+Phase 20 production smoke target, and the planned Docker Compose deployment path.
 
-As of 2026-05-09, `directbuy.aidevteam.ru` has been removed from central Caddy
-on `80.74.28.160` by operator request. The intended next routing state is direct
-DNS/TLS on the app host `91.132.59.194`, configured outside this repo session.
+As of 2026-05-13, Direct Buy is served directly from the app host at
+`https://directbuy.zalogium.ru`. DNS points to `91.132.59.194`, Nginx terminates
+TLS on that host, and `@mo_lot_bot` is configured in BotFather for that web
+login domain.
+
+On 2026-05-09, `directbuy.aidevteam.ru` was removed from central Caddy on
+`80.74.28.160` by operator request. Do not treat the old edge route as current.
 
 The historical Phase 20 smoke gate used PM2/Nginx on `91.132.59.194`, with
 public HTTPS terminated by central Caddy on `80.74.28.160` and proxied to
@@ -23,11 +27,12 @@ Documentation checked on 2026-05-02:
 - Docker Compose environment interpolation and `docker compose config`: https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/
 - Caddy reverse proxy and automatic HTTPS: https://caddyserver.com/docs/caddyfile/directives/reverse_proxy and https://caddyserver.com/docs/automatic-https
 
-## Direct App-Host Migration State
+## Current Direct App-Host State
 
 | Layer | Host | Process | Notes |
 | --- | --- | --- | --- |
-| Public DNS | `directbuy.aidevteam.ru` | Operator-managed | Point the A record to `91.132.59.194` when the app-host Nginx/TLS config is ready. |
+| Public DNS | `directbuy.zalogium.ru` | A record to `91.132.59.194` | No `www` record is required unless explicitly configured. |
+| HTTPS | `91.132.59.194` | Nginx + Let's Encrypt | `server_name directbuy.zalogium.ru`; proxies to `127.0.0.1:3001`. |
 | App host | `91.132.59.194` | PM2 `directbuy-web` | Runs `next start -p 3001` from `/var/www/directbuy/current`. |
 | Telegram bot | `91.132.59.194` | PM2 `directbuy-bot` | Runs `tsx bot/start.ts` from `/var/www/directbuy/current`. |
 | SLA worker | `91.132.59.194` | PM2 `directbuy-worker` | Runs `tsx lib/queue/worker.ts` from `/var/www/directbuy/current`. |
@@ -50,7 +55,7 @@ must be mode `0600`, and must not be copied into repo artifacts or chat output.
 
 Direct app-host credential path:
 
-- Target URL: `https://directbuy.aidevteam.ru`
+- Target URL: `https://directbuy.zalogium.ru`
 - App host credential file: `/var/www/directbuy/current/.env` on `root@91.132.59.194`
 - Required smoke names: `DOMAIN`, `DATABASE_URL`, `REDIS_URL`, `BOT_TOKEN`,
   `NEXT_PUBLIC_BOT_USERNAME`, `ADMIN_SESSION_TOKEN`, `ADMIN_API_KEY`,
@@ -62,6 +67,7 @@ Direct app-host checks:
 
 ```bash
 ssh root@91.132.59.194 'cd /var/www/directbuy/current && stat -c %a .env && pm2 status && nginx -t && pg_isready -h 127.0.0.1 -p 5432 && redis-cli -h 127.0.0.1 ping'
+curl -fsS https://directbuy.zalogium.ru/admin/login >/tmp/directbuy-admin-login.html
 ```
 
 Historical Phase 20 edge checks, not valid after the 2026-05-09 edge cleanup:
@@ -119,7 +125,7 @@ openssl rand -base64 48
 ## Manual Infrastructure Checklist
 
 Complete these actions before the first Compose deploy. For the direct
-PM2/Nginx app-host target, use the direct app-host migration section above.
+PM2/Nginx app-host target, use the current direct app-host section above.
 
 - Provision a Linux VPS with Docker Engine and the Docker Compose plugin.
 - Open inbound TCP `80` and `443`; keep SSH limited to the operator allowlist.
@@ -201,7 +207,7 @@ client-exposed build-time value in Next.js.
 
 Run these after first Compose deploy, after each Compose update, and before
 marking a Compose-based `Direct Buy-1z7.5` complete. For the direct PM2/Nginx
-app-host target, use the direct app-host migration state section above.
+app-host target, use the current direct app-host state section above.
 
 ```bash
 set -a
